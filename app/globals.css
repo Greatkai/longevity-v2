@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #0A5BA8;
+  --brand-light: #3186D8;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-ink-900 antialiased;
+  font-family: "PingFang SC", "Noto Sans SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5fa;
+}
+::-webkit-scrollbar-thumb {
+  background: #c3d5ec;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ab9dd;
+}
+
+/* 选中文字颜色 */
+::selection {
+  background: rgba(49, 134, 216, 0.25);
+  color: #0A5BA8;
+}
+
+/* 通用工具类 */
+.container-page {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+/* 卡片 */
+.card {
+  @apply rounded-2xl border border-brand-100/80 bg-white shadow-card transition-all duration-300;
+}
+
+.card-hover {
+  @apply hover:-translate-y-1 hover:shadow-card-hover;
+}
+
+/* 顶部渐变描边卡片（精致感） */
+.card-accent {
+  position: relative;
+  overflow: hidden;
+}
+.card-accent::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0A5BA8, #3186D8, #5DA0DB);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.card-accent:hover::before {
+  opacity: 1;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-brand-700 via-brand-500 to-brand-400 bg-clip-text text-transparent;
+}
+
+/* 输入框 */
+.input-base {
+  @apply w-full rounded-xl border border-brand-100 bg-white px-4 py-3 text-ink-900 shadow-sm outline-none transition-all duration-200 placeholder:text-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-200;
+}
+
+/* 主按钮 */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-gradient px-6 py-3 font-semibold text-white shadow-md transition-all duration-300 hover:shadow-glow hover:opacity-95 active:scale-95;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white px-6 py-3 font-semibold text-brand-700 transition-all duration-300 hover:border-brand-300 hover:bg-brand-50 active:scale-95;
+}
+
+/* 玻璃拟态 */
+.glass {
+  @apply border border-white/20 bg-white/10 backdrop-blur-md;
+}
+
+/* 网格纹理背景 */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* 浅色网格纹理（白底区块用） */
+.bg-grid-light {
+  background-image:
+    linear-gradient(rgba(6, 61, 112, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 61, 112, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* 区块角标 */
+.section-tag {
+  @apply inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-brand-600;
+}
+
+/* 光晕装饰 */
+.glow-ring {
+  @apply absolute rounded-full blur-3xl;
+}

@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  chi-app:
+    build: .
+    container_name: chi-longevity
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # 生产环境务必替换为高强度随机字符串
+      JWT_SECRET: "${JWT_SECRET:-please-change-this-secret}"
+      # 管理员初始账号
+      ADMIN_EMAIL: "${ADMIN_EMAIL:-admin@chi.cn}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-admin123456}"
+      # AI 服务（可选）
+      # OPENAI_API_KEY: "sk-xxx"
+      # OPENAI_BASE_URL: "https://api.openai.com/v1"
+      # OPENAI_MODEL: "gpt-4o-mini"
+    volumes:
+      - ./data:/app/data

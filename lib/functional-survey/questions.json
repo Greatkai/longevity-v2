@@ -1,0 +1,2266 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "name": "功能医学两段式健康评估问卷",
+    "stage1Description": "23题整体健康评估，映射7大核心生理过程失衡。",
+    "stage2Description": "根据Stage1评分，仅对主要异常领域呈现15题深入评估。",
+    "scoringMethod": "计算每个失衡领域对应整体问题中'是'的百分比，按百分比降序排列。",
+    "selectionRule": "阳性率≥30%的领域进入Stage2详细评估；若均低于30%，则取阳性率最高的1个领域。"
+  },
+  "sections": [
+    {
+      "id": "basic",
+      "title": "基本信息",
+      "subtitle": "请填写您的基本信息",
+      "stage": "info",
+      "questions": [
+        {
+          "qid": "basic_name",
+          "text": "您的姓名",
+          "type": "text",
+          "placeholder": "请输入姓名"
+        },
+        {
+          "qid": "basic_gender",
+          "text": "您的性别",
+          "type": "radio",
+          "options": [
+            "男",
+            "女"
+          ]
+        },
+        {
+          "qid": "basic_age",
+          "text": "您的年龄",
+          "type": "number",
+          "placeholder": "岁"
+        },
+        {
+          "qid": "basic_phone",
+          "text": "联系电话",
+          "type": "text",
+          "placeholder": "手机号码（自动填入）"
+        },
+        {
+          "qid": "basic_height",
+          "text": "您的身高",
+          "type": "number",
+          "placeholder": "厘米（cm）"
+        },
+        {
+          "qid": "basic_weight",
+          "text": "您的体重",
+          "type": "number",
+          "placeholder": "公斤（kg）"
+        },
+        {
+          "qid": "basic_source",
+          "text": "您由何渠道前来（来源）",
+          "type": "text",
+          "placeholder": "如：门诊/朋友介绍/网络等"
+        },
+        {
+          "qid": "basic_labor",
+          "text": "您的劳动强度",
+          "type": "radio",
+          "options": [
+            "轻体力劳动",
+            "中体力劳动",
+            "重体力劳动"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "habits",
+      "title": "日常生活习惯调查",
+      "subtitle": "屏幕时间、烟酒情况",
+      "stage": "lifestyle",
+      "questions": [
+        {
+          "qid": "hab_screen",
+          "text": "您每天使用电脑、手机的时间",
+          "type": "radio",
+          "options": [
+            "无",
+            "小于1小时",
+            "2-3小时",
+            "4-8小时",
+            "大于8小时"
+          ]
+        },
+        {
+          "qid": "hab_smoke",
+          "text": "您的吸烟情况",
+          "type": "radio",
+          "options": [
+            "不吸烟",
+            "已戒烟（1年以上）",
+            "已戒烟（不满1年）",
+            "偶尔吸烟",
+            "每天5-10支",
+            "每天10-20支",
+            "每天21支以上"
+          ]
+        },
+        {
+          "qid": "hab_alcohol",
+          "text": "您的饮酒情况",
+          "type": "radio",
+          "options": [
+            "不饮酒",
+            "偶尔饮酒",
+            "经常饮酒（每周2次及以上）",
+            "每天饮酒"
+          ]
+        },
+        {
+          "qid": "hab_alcohol_type",
+          "text": "如果喝酒，您常喝的酒类（可多选）",
+          "type": "checkbox",
+          "options": [
+            "不饮酒",
+            "红酒",
+            "白酒",
+            "啤酒"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diet",
+      "title": "饮食调查（近半年的平均水平）",
+      "subtitle": "请填写每种食物的进食频率、次数与每次食用量",
+      "stage": "lifestyle",
+      "questions": [
+        {
+          "qid": "diet_rice",
+          "text": "米饭",
+          "type": "foodfreq",
+          "group": "主食类",
+          "bowl": true
+        },
+        {
+          "qid": "diet_porridge",
+          "text": "各种粥（米粥、小米粥、粗粮粥、麦片粥等）",
+          "type": "foodfreq",
+          "group": "主食类",
+          "bowl": true
+        },
+        {
+          "qid": "diet_dried_noodle",
+          "text": "干的面食（馒头、烙饼、面包等）",
+          "type": "foodfreq",
+          "group": "主食类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_noodle",
+          "text": "面条、米线",
+          "type": "foodfreq",
+          "group": "主食类",
+          "bowl": true
+        },
+        {
+          "qid": "diet_wholegrain",
+          "text": "全谷类粗粮（糙米、燕麦、玉米、荞麦等）",
+          "type": "foodfreq",
+          "group": "主食类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_tuber",
+          "text": "薯类、根茎类粗粮（红薯、土豆、山药等）",
+          "type": "foodfreq",
+          "group": "主食类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_gaifan",
+          "text": "盖浇饭（菜与饭混在一起）",
+          "type": "foodfreq",
+          "group": "主食类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_lean_meat",
+          "text": "瘦肉（猪、牛、羊、鸡、鸭肉）",
+          "type": "foodfreq",
+          "group": "肉蛋水产类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_fat_meat",
+          "text": "肥肉",
+          "type": "foodfreq",
+          "group": "肉蛋水产类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_offal",
+          "text": "动物内脏",
+          "type": "foodfreq",
+          "group": "肉蛋水产类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_seafood",
+          "text": "水产类（鱼、虾、蟹等）",
+          "type": "foodfreq",
+          "group": "肉蛋水产类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_egg",
+          "text": "蛋类",
+          "type": "foodfreq",
+          "group": "肉蛋水产类",
+          "bowl": false
+        },
+        {
+          "qid": "diet_milk",
+          "text": "牛奶、酸奶",
+          "type": "foodfreq",
+          "group": "奶类豆类坚果",
+          "bowl": false
+        },
+        {
+          "qid": "diet_soy",
+          "text": "豆制品（豆浆、豆腐、豆腐干、豆腐丝等）",
+          "type": "foodfreq",
+          "group": "奶类豆类坚果",
+          "bowl": false
+        },
+        {
+          "qid": "diet_nut",
+          "text": "坚果",
+          "type": "foodfreq",
+          "group": "奶类豆类坚果",
+          "bowl": false
+        },
+        {
+          "qid": "diet_veg",
+          "text": "绿叶蔬菜",
+          "type": "foodfreq",
+          "group": "蔬菜水果",
+          "bowl": false
+        },
+        {
+          "qid": "diet_fruit",
+          "text": "新鲜水果",
+          "type": "foodfreq",
+          "group": "蔬菜水果",
+          "bowl": false
+        },
+        {
+          "qid": "diet_sweets",
+          "text": "甜食（蛋糕、冰淇淋、点心糖果、话梅、果脯、蜜饯等）",
+          "type": "foodfreq",
+          "group": "精加工及不健康食品",
+          "bowl": false
+        },
+        {
+          "qid": "diet_drink",
+          "text": "饮料（含糖饮料、果汁饮料、咖啡等）",
+          "type": "foodfreq",
+          "group": "精加工及不健康食品",
+          "bowl": false
+        },
+        {
+          "qid": "diet_processed",
+          "text": "加工食品（方便面、火腿肠、香肠、罐头、肉松、肉干等）",
+          "type": "foodfreq",
+          "group": "精加工及不健康食品",
+          "bowl": false
+        },
+        {
+          "qid": "diet_fried",
+          "text": "油炸食品",
+          "type": "foodfreq",
+          "group": "精加工及不健康食品",
+          "bowl": false
+        },
+        {
+          "qid": "diet_pickle",
+          "text": "咸菜",
+          "type": "foodfreq",
+          "group": "精加工及不健康食品",
+          "bowl": false
+        },
+        {
+          "qid": "diet_fastfood",
+          "text": "洋快餐（麦当劳、肯德基、星巴克等）",
+          "type": "foodfreq",
+          "group": "精加工及不健康食品",
+          "bowl": false
+        },
+        {
+          "qid": "diet_seaweed",
+          "text": "海产品（紫菜、海带、海鱼等）",
+          "type": "foodfreq",
+          "group": "其他",
+          "bowl": false
+        },
+        {
+          "qid": "diet_soup",
+          "text": "汤（煲汤、肉汤、面汤等）",
+          "type": "foodfreq",
+          "group": "其他",
+          "bowl": false
+        },
+        {
+          "qid": "diet_spicy",
+          "text": "辛辣食品",
+          "type": "foodfreq",
+          "group": "其他",
+          "bowl": false
+        },
+        {
+          "qid": "diet_eating_out",
+          "text": "在外就餐",
+          "type": "foodfreq",
+          "group": "其他",
+          "bowl": false
+        }
+      ]
+    },
+    {
+      "id": "exercise",
+      "title": "运动情况调查",
+      "subtitle": "近半年平均运动情况",
+      "stage": "lifestyle",
+      "questions": [
+        {
+          "qid": "ex_freq",
+          "text": "您每周专门运动的次数",
+          "type": "radio",
+          "options": [
+            "从不或偶尔",
+            "每周1次",
+            "每周2-4次",
+            "每周5次以上"
+          ]
+        },
+        {
+          "qid": "ex_duration",
+          "text": "您单次运动的时间",
+          "type": "radio",
+          "options": [
+            "不运动",
+            "0.5-1小时",
+            "1-2小时",
+            "2-4小时"
+          ]
+        },
+        {
+          "qid": "ex_type",
+          "text": "您运动的方式（可多选）",
+          "type": "checkbox",
+          "options": [
+            "散步",
+            "快走",
+            "跑步",
+            "太极",
+            "健身房",
+            "跳舞",
+            "瑜伽",
+            "打球",
+            "不运动"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sleep",
+      "title": "睡眠情况调查",
+      "subtitle": "近半年平均睡眠情况",
+      "stage": "lifestyle",
+      "questions": [
+        {
+          "qid": "sleep_duration",
+          "text": "您每天睡眠时间",
+          "type": "radio",
+          "options": [
+            "大于8小时",
+            "6-8小时",
+            "4-6小时",
+            "少于4小时"
+          ]
+        },
+        {
+          "qid": "sleep_bedtime",
+          "text": "您通常上床入睡的时间",
+          "type": "radio",
+          "options": [
+            "晚8-10点",
+            "晚10-12点",
+            "12点以后"
+          ]
+        },
+        {
+          "qid": "sleep_quality",
+          "text": "您自评近一个月的睡眠质量",
+          "type": "radio",
+          "options": [
+            "很好，入睡快、睡得沉",
+            "一般，偶尔失眠或多梦",
+            "较差，经常入睡困难或早醒",
+            "很差，长期失眠"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "disease",
+      "title": "既往史与用药调查",
+      "subtitle": "如患过以下疾病请选“有”，并注明年份与具体情况",
+      "stage": "lifestyle",
+      "questions": [
+        {
+          "qid": "dis_tumor",
+          "text": "肿瘤（包括良性肿瘤）",
+          "type": "diseasehist",
+          "short": "肿瘤"
+        },
+        {
+          "qid": "dis_allergy",
+          "text": "过敏（食物/药物/其他）",
+          "type": "diseasehist",
+          "short": "过敏"
+        },
+        {
+          "qid": "dis_bronchitis",
+          "text": "慢性支气管炎（包括哮喘）",
+          "type": "diseasehist",
+          "short": "慢性支气管炎/哮喘"
+        },
+        {
+          "qid": "dis_periodontitis",
+          "text": "牙周炎",
+          "type": "diseasehist",
+          "short": "牙周炎"
+        },
+        {
+          "qid": "dis_reflux",
+          "text": "反流性胃炎",
+          "type": "diseasehist",
+          "short": "反流性胃炎"
+        },
+        {
+          "qid": "dis_fatty_liver",
+          "text": "脂肪肝（B超结果）",
+          "type": "diseasehist",
+          "short": "脂肪肝"
+        },
+        {
+          "qid": "dis_gallstone",
+          "text": "胆结石（B超结果）",
+          "type": "diseasehist",
+          "short": "胆结石"
+        },
+        {
+          "qid": "dis_hypertension",
+          "text": "高血压",
+          "type": "diseasehist",
+          "short": "高血压"
+        },
+        {
+          "qid": "dis_chd",
+          "text": "冠心病（冠状动脉钙化也算）",
+          "type": "diseasehist",
+          "short": "冠心病"
+        },
+        {
+          "qid": "dis_arrhythmia",
+          "text": "心律不齐",
+          "type": "diseasehist",
+          "short": "心律不齐"
+        },
+        {
+          "qid": "dis_anemia",
+          "text": "贫血",
+          "type": "diseasehist",
+          "short": "贫血"
+        },
+        {
+          "qid": "dis_hyperuricemia",
+          "text": "高尿酸血症",
+          "type": "diseasehist",
+          "short": "高尿酸血症"
+        },
+        {
+          "qid": "dis_diabetes",
+          "text": "糖尿病",
+          "type": "diseasehist",
+          "short": "糖尿病"
+        },
+        {
+          "qid": "dis_lipid",
+          "text": "高脂血症",
+          "type": "diseasehist",
+          "short": "高脂血症"
+        },
+        {
+          "qid": "dis_thyroid",
+          "text": "甲状腺功能和抗体异常",
+          "type": "diseasehist",
+          "short": "甲状腺异常"
+        },
+        {
+          "qid": "dis_stroke",
+          "text": "脑卒中病史（TIA/缺血性/出血性）",
+          "type": "diseasehist",
+          "short": "脑卒中"
+        },
+        {
+          "qid": "dis_urine",
+          "text": "尿蛋白阳性、尿潜血阳性",
+          "type": "diseasehist",
+          "short": "尿蛋白/尿潜血阳性"
+        },
+        {
+          "qid": "dis_creatinine",
+          "text": "肌酐高于正常（是否透析）",
+          "type": "diseasehist",
+          "short": "肌酐升高"
+        },
+        {
+          "qid": "dis_other",
+          "text": "其它疾病",
+          "type": "diseasehist",
+          "short": "其它疾病"
+        },
+        {
+          "qid": "dis_medication",
+          "text": "您目前正在服用的药物（可多选）",
+          "type": "checkbox",
+          "options": [
+            "未服药",
+            "降压药",
+            "降糖药",
+            "降尿酸药",
+            "降脂药",
+            "肠胃药",
+            "甲状腺药物",
+            "哮喘药",
+            "镇定剂",
+            "中药"
+          ]
+        },
+        {
+          "qid": "dis_note",
+          "text": "主要病史和主要问题（可自由补充）",
+          "type": "textarea",
+          "placeholder": "请描述您的既往病史、目前最主要的健康问题等",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "id": "discomfort",
+      "title": "症状调查（近半年出现的症状）",
+      "subtitle": "请根据近半年实际情况作答",
+      "stage": "lifestyle",
+      "questions": [
+        {
+          "qid": "sym_cold",
+          "text": "经常感冒发烧（半年三次以上）",
+          "type": "radio",
+          "short": "经常感冒发烧",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_fatigue",
+          "text": "疲乏无力感、倦怠",
+          "type": "radio",
+          "short": "疲乏无力",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_cough",
+          "text": "咳嗽、咳痰",
+          "type": "radio",
+          "short": "咳嗽咳痰",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_snore",
+          "text": "睡觉时打呼噜",
+          "type": "radio",
+          "short": "打呼噜",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_appetite",
+          "text": "食欲不振、消化不良",
+          "type": "radio",
+          "short": "食欲不振/消化不良",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_reflux",
+          "text": "胃酸过多、反酸、嗳气",
+          "type": "radio",
+          "short": "反酸嗳气",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_bowel",
+          "text": "便秘或腹泻",
+          "type": "radio",
+          "short": "便秘/腹泻",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ],
+          "detail": "排便次数（次/日）及便秘/腹泻情况"
+        },
+        {
+          "qid": "sym_palpitation",
+          "text": "心悸、气短",
+          "type": "radio",
+          "short": "心悸气短",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_headache",
+          "text": "头痛、头晕",
+          "type": "radio",
+          "short": "头痛头晕",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_dream",
+          "text": "多梦、失眠质量差",
+          "type": "radio",
+          "short": "多梦/睡眠质量差",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_insomnia",
+          "text": "入睡困难或者早醒",
+          "type": "radio",
+          "short": "入睡困难/早醒",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        },
+        {
+          "qid": "sym_memory",
+          "text": "记忆力下降",
+          "type": "radio",
+          "short": "记忆力下降",
+          "options": [
+            "没有",
+            "偶尔",
+            "经常"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overall",
+      "stage": "stage1",
+      "title": "整体健康评估",
+      "subtitle": "请根据近两年的实际情况作答，选择'是'或'否'。这部分将帮助我们判断您可能存在的核心生理过程失衡。",
+      "mapping": {
+        "absorption": [
+          2,
+          4,
+          9,
+          12,
+          13,
+          15,
+          16,
+          19,
+          20
+        ],
+        "detox": [
+          2,
+          3,
+          4,
+          7,
+          8,
+          12,
+          13,
+          20,
+          22
+        ],
+        "defense": [
+          4,
+          6,
+          8,
+          12,
+          13,
+          16,
+          18,
+          19,
+          20,
+          22
+        ],
+        "communication": [
+          2,
+          3,
+          4,
+          6,
+          15,
+          18,
+          22
+        ],
+        "transport": [
+          2,
+          3,
+          4,
+          6,
+          15,
+          17,
+          18,
+          21
+        ],
+        "energy": [
+          2,
+          4,
+          5,
+          7,
+          9,
+          13,
+          14,
+          16
+        ],
+        "structure": [
+          2,
+          3,
+          4,
+          14,
+          16,
+          21
+        ]
+      },
+      "questions": [
+        {
+          "qid": "ov_1",
+          "text": "在过去两年中，你是否感觉自己的健康状况变差了？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_2",
+          "text": "在过去五年中，你的体重是否减轻或增加了10%以上——即使你没有刻意改变饮食？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_3",
+          "text": "你是否存在入睡困难或睡眠较浅的问题？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_4",
+          "text": "你是否存在关节或肌肉疼痛，导致体力活动或行动能力受限的问题？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_5",
+          "text": "你是否经常无缘无故地感到疲惫？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_6",
+          "text": "你是否常常感到抑郁或焦虑？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_7",
+          "text": "你是否存在记忆力问题？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_8",
+          "text": "你是否经常耳鸣？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_9",
+          "text": "你是否感到自己的体力正在衰退？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_10",
+          "text": "你是否正在服用处方药？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_11",
+          "text": "你服用的处方药是否超过两种？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_12",
+          "text": "你是否正在服用非处方药？（可多选：A. 抗炎药 B. 抗酸药 C. 镇痛药 D. 安眠药）",
+          "type": "checkbox",
+          "options": [
+            "A. 抗炎药",
+            "B. 抗酸药",
+            "C. 镇痛药",
+            "D. 安眠药",
+            "E. 无"
+          ]
+        },
+        {
+          "qid": "ov_13",
+          "text": "你是否对某些物质过敏？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_14",
+          "text": "你是否偶尔出现注意力不集中或意识模糊？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_15",
+          "text": "你是否经常感到呼吸急促或呼吸困难？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_16",
+          "text": "近年来，你是否出现味觉或嗅觉退化？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_17",
+          "text": "近年来，你是否感到自己肌肉量大幅减少？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_18",
+          "text": "医生是否告知你有以下症状？（可多选：A. 血压偏高 B. 低密度脂蛋白胆固醇水平偏高 C. 血糖水平偏高）",
+          "type": "checkbox",
+          "options": [
+            "A. 血压偏高",
+            "B. 低密度脂蛋白胆固醇水平偏高",
+            "C. 血糖水平偏高",
+            "D. 无"
+          ]
+        },
+        {
+          "qid": "ov_19",
+          "text": "牙医是否告知你的牙龈或牙周存在病变？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_20",
+          "text": "你是否反复出现便秘和腹泻，或者感到胃肠道不适？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_21",
+          "text": "是否有人告知你有长期口臭问题？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_22",
+          "text": "你是否感觉自己变矮了？你出现过任何钙沉积的征兆吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ov_23",
+          "text": "你是否经常感冒，或者总是在流感流行时\"中招\"？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch4",
+      "stage": "stage2",
+      "category": "absorption",
+      "title": "吸收与排泄情况评估",
+      "subtitle": "请根据您的实际情况作答，选择\"是\"或\"否\"（本模块仅在整体评估显示可能存在该失衡时呈现）",
+      "questions": [
+        {
+          "qid": "ch4_1",
+          "text": "你是否经常出现便秘或腹泻？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_2",
+          "text": "你是否消化不良？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_3",
+          "text": "你的粪便表面有油光吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_4",
+          "text": "你是否经常出现胃胀气或腹部胀气？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_5",
+          "text": "你是否经常出现胃肠道疼痛？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_6",
+          "text": "你是否出现过反流？是否经常出现？",
+          "type": "radio",
+          "options": [
+            "是，经常",
+            "偶尔",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_7",
+          "text": "你经常头痛吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_8",
+          "text": "你对许多食物敏感或过敏吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_9",
+          "text": "你是否会在餐后感到关节或肌肉疼痛？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_10",
+          "text": "你有口臭吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_11",
+          "text": "你是否经常情绪低落？是否有时会感到情绪大起大落？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_12",
+          "text": "你是否即使已经很注意饮食了，也难以控制体重？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_13",
+          "text": "你的血糖水平偏高吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_14",
+          "text": "你是否患有肾结石？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch4_15",
+          "text": "你血压偏高吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch5",
+      "stage": "stage2",
+      "category": "detox",
+      "title": "排毒情况评估",
+      "subtitle": "请根据您的实际情况作答（本模块仅在整体评估显示可能存在该失衡时呈现）",
+      "questions": [
+        {
+          "qid": "ch5_1",
+          "text": "你对香味或臭味敏感吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_2",
+          "text": "你存在食物过敏吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_3",
+          "text": "你存在药物过敏吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_4",
+          "text": "你对酒精过敏吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_5",
+          "text": "摄入食物中的谷氨酸钠（味精）会让你感到不适吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_6",
+          "text": "你对咖啡因敏感吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_7",
+          "text": "你因接触某种或某些人工化学物质而生过病吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_8",
+          "text": "香烟的烟雾会让你感到难受或生病吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_9",
+          "text": "你对雾霾或空气污染敏感吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_10",
+          "text": "你是否经常一觉醒来感觉头昏脑胀？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_11",
+          "text": "你是否出现过原因不明的皮疹？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_12",
+          "text": "你是否出现过脑雾（思维模糊、难以集中）？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_13",
+          "text": "你是否经常感觉手脚处有刺麻感？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_14",
+          "text": "你是否经常持续听到嗡嗡声（耳鸣）？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch5_15",
+          "text": "你是否经常出现原因不明的肌肉疼痛？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch6",
+      "stage": "stage2",
+      "category": "defense",
+      "title": "防御情况评估",
+      "subtitle": "请根据您的实际情况作答（本模块仅在整体评估显示可能存在该失衡时呈现）",
+      "questions": [
+        {
+          "qid": "ch6_1",
+          "text": "每次感冒或流感流行时，你都会\"中招\"吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_2",
+          "text": "你是否存在关节疼痛，适度运动后会加重吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_3",
+          "text": "你出现过原因不明的皮疹吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_4",
+          "text": "你对阳光十分敏感吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_5",
+          "text": "你是否存在关节肿胀？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_6",
+          "text": "你的手掌、手腕、脚踝或脚掌是否存在慢性疼痛？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_7",
+          "text": "你的握力是否在逐渐减小？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_8",
+          "text": "你的肌肉量是否在逐渐减少？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_9",
+          "text": "你患有慢性鼻窦炎吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_10",
+          "text": "你经常出现足癣之类的真菌感染吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_11",
+          "text": "你经常出现膀胱或尿路感染吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_12",
+          "text": "你存在慢性胃肠道疼痛等消化系统不适吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_13",
+          "text": "你有牙周病相关的口腔问题吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_14",
+          "text": "你是否存在慢性腿痛或背痛？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_15",
+          "text": "你是否经常服用抗炎药？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch6_16",
+          "text": "你是否经常服用处方抗生素来治疗感染？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch7",
+      "stage": "stage2",
+      "category": "communication",
+      "title": "细胞通信情况评估",
+      "subtitle": "请根据您的实际情况作答（本模块仅在整体评估显示可能存在该失衡时呈现）",
+      "questions": [
+        {
+          "qid": "ch7_1",
+          "text": "你是否存在关节炎样疼痛或炎症？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_2",
+          "text": "你是否存在夜间盗汗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_3",
+          "text": "你是否经常在天气改变时感到关节疼痛？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_4",
+          "text": "在运动后，你的关节是否肿胀？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_5",
+          "text": "你是否经常在早上感到无精打采，到中午才有精神？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_6",
+          "text": "生活压力是否影响了你的健康？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_7",
+          "text": "你是否经常感觉\"身体很累但精神很亢奋\"？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_8",
+          "text": "就你的年龄来说，你是否性欲低？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_9",
+          "text": "你是否长期处于抑郁状态？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_10",
+          "text": "你认为自己越来越健忘吗？你会为此担心吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_11",
+          "text": "你是否存在入睡困难，即使睡着也会很快醒来？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_12",
+          "text": "你的鼻窦、扁桃体、肠道、皮肤或口腔是否存在慢性感染？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_13",
+          "text": "你是否经常服用抗炎药（非处方药或处方药都算）？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_14",
+          "text": "你正在服用降压药吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch7_15",
+          "text": "你正在服用抗抑郁药吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch8",
+      "stage": "stage2",
+      "category": "transport",
+      "title": "细胞运输情况评估",
+      "subtitle": "请根据您的实际情况作答（本模块仅在整体评估显示可能存在该失衡时呈现）",
+      "questions": [
+        {
+          "qid": "ch8_1",
+          "text": "你是否经常出现脑雾，难以集中注意力？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_2",
+          "text": "你的血糖水平是否高于正常范围？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_3",
+          "text": "吃高蛋白食物会让你出现消化问题吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_4",
+          "text": "你是否经常感到困倦，尤其是在餐后？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_5",
+          "text": "你的体重是否莫名增加，腰围是否莫名变大？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_6",
+          "text": "你的甘油三酯水平是否偏高？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_7",
+          "text": "你患有高血压吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_8",
+          "text": "你近年来是否存在肌肉量减少？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_9",
+          "text": "你的低密度脂蛋白胆固醇水平是否高于正常范围？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_10",
+          "text": "你服用他汀类药物吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_11",
+          "text": "你是否被告知血液中的白蛋白水平或红细胞压积较低？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_12",
+          "text": "医生是否建议你减少胆固醇摄入量？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_13",
+          "text": "你是否被告知存在肾功能减退？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_14",
+          "text": "你的视力是否衰退？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch8_15",
+          "text": "你担心自己有心血管问题吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch9",
+      "stage": "stage2",
+      "category": "energy",
+      "title": "能量转换与利用情况评估",
+      "subtitle": "请根据您的实际情况作答（本模块仅在整体评估显示可能存在该失衡时呈现）",
+      "questions": [
+        {
+          "qid": "ch9_1",
+          "text": "你是否经常莫名感到疲劳？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_2",
+          "text": "8小时的睡眠对你来说是否充足？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_3",
+          "text": "适度运动也会让你感到肌肉疼痛吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_4",
+          "text": "你出现过脑雾吗？经常出现吗？",
+          "type": "radio",
+          "options": [
+            "是，经常",
+            "偶尔",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_5",
+          "text": "你在上下楼时是否感到不适，喘不过气来？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_6",
+          "text": "你是否缺乏目标，经常感到无精打采？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_7",
+          "text": "你是否发现自己现在无法忍受被打扰，而过去的你能忽略或处理好外界干扰？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_8",
+          "text": "你是否担心自己运动后感到不适？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_9",
+          "text": "你是否经常感到疲惫？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_10",
+          "text": "你是否觉得自己没有精力处理日常生活问题？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_11",
+          "text": "你是否经常出现原因不明的头痛？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_12",
+          "text": "你是否感到嗅觉和味觉减退？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_13",
+          "text": "你是否忘记过不该忘记的事情？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_14",
+          "text": "你觉得自己比实际年龄老吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch9_15",
+          "text": "你经常感冒吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch10",
+      "stage": "stage2",
+      "category": "structure",
+      "title": "结构完整性评估",
+      "subtitle": "请根据您的实际情况作答（本模块仅在整体评估显示可能存在该失衡时呈现）",
+      "questions": [
+        {
+          "qid": "ch10_1",
+          "text": "你是否感觉自己越来越矮？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_2",
+          "text": "你是否存在背部不适？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_3",
+          "text": "你的脖子疼吗？这种情况经常发生吗？",
+          "type": "radio",
+          "options": [
+            "是，经常",
+            "偶尔",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_4",
+          "text": "你经常使用手机吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_5",
+          "text": "你是否被告知糖化血红蛋白水平偏高？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_6",
+          "text": "你经常吃炭烤食物吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_7",
+          "text": "你有记忆力方面的问题吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_8",
+          "text": "你即使非常严格地控制能量摄入，体重问题也没有得到改善吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_9",
+          "text": "你的腰臀比大于1吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_10",
+          "text": "你经常吃储存在塑料容器里的食物吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_11",
+          "text": "你是\"总感觉很冷\"的人吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_12",
+          "text": "你是否被告知存在骨量减少？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_13",
+          "text": "你到更年期了吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否",
+            "不适用"
+          ]
+        },
+        {
+          "qid": "ch10_14",
+          "text": "你很喜欢吃乳制品吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        },
+        {
+          "qid": "ch10_15",
+          "text": "你吃的动物性食物比植物性食物多吗？",
+          "type": "radio",
+          "options": [
+            "是",
+            "否"
+          ]
+        }
+      ]
+    }
+  ],
+  "imbalances": {
+    "absorption": {
+      "name": "吸收与排泄",
+      "fullName": "吸收与排泄失衡",
+      "icon": "🥗",
+      "threshold": 0.3,
+      "detailThresholdY": 5,
+      "description": "涉及消化、肠道菌群、营养吸收及废物排泄。常见表现包括腹胀、便秘/腹泻、食物敏感、口臭等。",
+      "intervention": {
+        "summary": "4R疗法：去除（Remove）、替代（Replace）、再接种（Reinoculate）、修复（Repair）。",
+        "diet": [
+          "识别并剔除敏感/过敏食物（如麸质、乳制品、高糖高脂加工食品）",
+          "采用低刺激性食物，优先选择全谷物、深色蔬菜、优质蛋白",
+          "补充膳食纤维与益生元，支持肠道菌群"
+        ],
+        "supplements": [
+          "益生菌与益生元制剂",
+          "消化酶（脂肪酶、蛋白酶）",
+          "修复肠屏障营养素：谷氨酰胺、锌、维生素A/D",
+          "谷氨酰胺剂量参考：肠道屏障修复用口服纯粉剂5g/次、每日2-3次；药品麦滋林-S（0.67g/袋）约含谷氨酰胺1g，适合胃黏膜修复（一日3袋，可报销）；换算：1勺纯粉剂(5g)≈5袋麦滋林，大剂量肠道修复建议用纯粉剂"
+        ],
+        "lifestyle": [
+          "规律三餐，细嚼慢咽",
+          "管理压力，避免交感神经过度兴奋影响消化",
+          "保证充足睡眠"
+        ],
+        "tests": [
+          "食物不耐受/过敏原检测",
+          "肠道菌群检测",
+          "便常规+潜血"
+        ],
+        "notes": "肠道是免疫系统的重要阵地，恢复吸收与排泄平衡通常需要4周以上才能感受到明显效果。"
+      }
+    },
+    "detox": {
+      "name": "排毒",
+      "fullName": "排毒过程失衡",
+      "icon": "🌿",
+      "threshold": 0.3,
+      "detailThresholdY": 5,
+      "description": "反映身体对外源/内源性毒素的识别、代谢与清除能力。常见表现包括化学气味敏感、脑雾、不明原因皮疹、肌肉疼痛等。",
+      "intervention": {
+        "summary": "减少毒素暴露，支持肝脏I/II相解毒，必要时采用20天高植物营养素饮食。",
+        "diet": [
+          "20天高植物营养素饮食：大量有机蔬菜、家禽瘦肉、多脂鱼类",
+          "剔除麸质、咖啡因、添加糖、巧克力、酒精及人工合成色素/调味剂/防腐剂",
+          "增加十字花科蔬菜（西兰花、孢子甘蓝）、绿茶、姜黄、石榴、甜菜"
+        ],
+        "supplements": [
+          "B族维生素",
+          "N-乙酰半胱氨酸（NAC）",
+          "矿物质：铁、锌、镁",
+          "植物营养素提取物（绿茶多酚、姜黄素、水飞蓟素）"
+        ],
+        "lifestyle": [
+          "避免吸烟及二手烟",
+          "减少塑料制品加热使用",
+          "增加出汗（适度运动、桑拿）",
+          "保证充足饮水"
+        ],
+        "tests": [
+          "肝功能（ALT/AST/GGT）",
+          "重金属/环境毒素暴露评估",
+          "氧化应激标志物"
+        ],
+        "notes": "脂肪组织会蓄积脂溶性毒素，减重过快可能导致毒素释放，需在专业指导下进行。"
+      }
+    },
+    "defense": {
+      "name": "防御",
+      "fullName": "防御（免疫）过程失衡",
+      "icon": "🛡️",
+      "threshold": 0.3,
+      "detailThresholdY": 5,
+      "description": "反映免疫系统识别、应答与调控能力。过度活跃表现为过敏、自身免疫；低下则易反复感染。",
+      "intervention": {
+        "summary": "不是'增强'免疫系统，而是'恢复平衡'：减少激发免疫反应的物质，加入维持免疫稳定的食物与营养素。",
+        "diet": [
+          "剔除明确诱发免疫反应的食物（如麸质、污染物、外源性毒素、酒精）",
+          "多吃维持免疫系统稳定的食物：蘑菇、深色蔬果、发酵食品",
+          "保证优质蛋白与必需脂肪酸摄入"
+        ],
+        "supplements": [
+          "维生素C（1–3 g/天）",
+          "锌（10–30 mg/天）",
+          "维生素A、E、D",
+          "ω-3脂肪酸（EPA/DHA 3–5 g/天）",
+          "益生菌、姜黄素、大蒜素、辣椒素等植物营养素"
+        ],
+        "lifestyle": [
+          "处理慢性感染灶（如牙周病、鼻窦炎）",
+          "规律作息，避免熬夜",
+          "适度运动，避免过度训练"
+        ],
+        "tests": [
+          "血常规、CRP/ESR",
+          "维生素D水平",
+          "食物不耐受检测",
+          "慢性感染筛查（EB病毒、幽门螺杆菌等）"
+        ],
+        "notes": "自身免疫问题常被误解为'对自己过敏'，实质是免疫系统对信号产生过度反应，需要恢复调控平衡。"
+      }
+    },
+    "communication": {
+      "name": "细胞通信",
+      "fullName": "细胞通信过程失衡",
+      "icon": "📡",
+      "threshold": 0.3,
+      "detailThresholdY": 5,
+      "description": "涉及激素、神经递质、细胞因子等信号分子。失衡可表现为情绪波动、睡眠障碍、性欲下降、月经/更年期症状等。",
+      "intervention": {
+        "summary": "识别信号来源（基础炎症、胰岛素抵抗、慢性中毒、肠道菌群失调），采用植物营养素与生活方式调节激素信号。",
+        "diet": [
+          "低升糖负荷饮食，改善胰岛素抵抗",
+          "增加十字花科蔬菜（调节雌激素代谢）",
+          "补充大豆异黄酮/黄豆苷元（围绝经期适用）",
+          "减少添加糖与精制碳水"
+        ],
+        "supplements": [
+          "ω-3脂肪酸",
+          "维生素D、镁、B族维生素",
+          "适应原草药：西伯利亚人参、红景天、南非醉茄",
+          "男性前列腺健康：β-谷甾醇、番茄红素、吲哚-3-甲醇"
+        ],
+        "lifestyle": [
+          "压力管理：正念、冥想、呼吸训练",
+          "规律睡眠，固定作息",
+          "适度力量训练与有氧结合"
+        ],
+        "tests": [
+          "性激素六项",
+          "甲状腺功能",
+          "空腹血糖、胰岛素、HbA1c",
+          "皮质醇节律"
+        ],
+        "notes": "激素是最强大的信号分子之一，少量替代或许有益，但需在专业医生指导下进行，避免更高风险。"
+      }
+    },
+    "transport": {
+      "name": "细胞运输",
+      "fullName": "细胞运输过程失衡",
+      "icon": "🚚",
+      "threshold": 0.3,
+      "detailThresholdY": 5,
+      "description": "涉及葡萄糖、脂肪、蛋白质、维生素等营养物质进入细胞及代谢产物运出。常见表现为餐后困倦、血糖/血脂异常、体重腰围增加。",
+      "intervention": {
+        "summary": "通过低碳水、优质脂肪、足量蛋白质和规律运动，改善胰岛素敏感性与营养物质转运。",
+        "diet": [
+          "减少精制淀粉与添加糖，选择低升糖指数主食（糙米、燕麦、豆类、长粒米）",
+          "适量摄入优质脂肪（深海鱼、初榨橄榄油、坚果、牛油果）",
+          "保证优质蛋白摄入（鱼、禽、蛋、豆制品）",
+          "增加可溶性膳食纤维"
+        ],
+        "supplements": [
+          "镁、铬、锌",
+          "ω-3脂肪酸",
+          "α-硫辛酸",
+          "肉桂提取物"
+        ],
+        "lifestyle": [
+          "餐后散步15–20分钟",
+          "每周至少150分钟中等强度运动",
+          "力量训练每周2–3次",
+          "避免久坐"
+        ],
+        "tests": [
+          "空腹血糖、胰岛素、HbA1c",
+          "血脂四项（LDL-C、HDL-C、TG、TC）",
+          "口服葡萄糖耐量试验（OGTT）",
+          "肾功能、白蛋白、红细胞压积"
+        ],
+        "notes": "细胞运输失衡与排毒失衡密切相关，纠正排毒过程往往能改善血糖、胰岛素和甘油三酯水平。"
+      }
+    },
+    "energy": {
+      "name": "能量转换与利用",
+      "fullName": "能量转换与利用失衡",
+      "icon": "⚡",
+      "threshold": 0.3,
+      "detailThresholdY": 5,
+      "description": "核心为线粒体功能。失衡表现为持续疲劳、运动不耐受、脑雾、记忆力下降、比实际年龄显老。",
+      "intervention": {
+        "summary": "实施'线粒体复苏'方案：支持线粒体生物发生、减少氧化损伤、优化电子传递链功能。",
+        "diet": [
+          "富含抗氧化剂的地中海/抗炎饮食",
+          "足量优质蛋白与健康脂肪",
+          "限制精制糖与反式脂肪",
+          "适量辅酶Q10、B族维生素食物来源"
+        ],
+        "supplements": [
+          "辅酶Q10：50–200 mg/天",
+          "N-乙酰半胱氨酸（NAC）：500–3000 mg/天",
+          "乙酰左旋肉碱：200–2000 mg/天",
+          "α-硫辛酸：200–2000 mg/天",
+          "烟酸：50–1000 mg/天",
+          "B族维生素（B1/B2/B3/B6/B12/叶酸）",
+          "维生素C（1000–3000 mg/天）、维生素E、D3",
+          "白藜芦醇、姜黄素、EGCG"
+        ],
+        "lifestyle": [
+          "循序渐进的力量训练与有氧训练",
+          "间歇性低氧/高原训练（专业指导）",
+          "规律睡眠，管理压力",
+          "避免环境毒素（烟草、酒精、某些药物）"
+        ],
+        "tests": [
+          "线粒体功能相关检测",
+          "氧化应激标志物（丙二醛、8-OHdG）",
+          "辅酶Q10水平",
+          "甲状腺功能、铁蛋白、维生素B12"
+        ],
+        "notes": "线粒体功能恢复通常需要8周以上才能显现全部益处，重度线粒体问题需要更大剂量营养素支持。"
+      }
+    },
+    "structure": {
+      "name": "结构完整性",
+      "fullName": "结构完整性失衡",
+      "icon": "🏗️",
+      "threshold": 0.3,
+      "detailThresholdY": 5,
+      "description": "涉及骨骼、肌肉、关节、筋膜及身体姿态。失衡表现为身高变矮、腰背/颈痛、骨量减少、向心性肥胖。",
+      "intervention": {
+        "summary": "生理层面（饮食控制'愤怒脂肪'、激活肌肉线粒体）+ 物理层面（负重训练、物理治疗/按摩/针灸）相结合。",
+        "diet": [
+          "减少精制碳水与添加糖，控制'愤怒脂肪'堆积",
+          "高蛋白饮食以维持肌肉量",
+          "增加抗炎食物（深海鱼、坚果、橄榄油、彩色蔬菜）",
+          "控制总热量，避免向心性肥胖"
+        ],
+        "supplements": [
+          "钙（随餐分次补充）",
+          "维生素D3（1000–5000 IU/天，根据检测调整）",
+          "镁、维生素K2",
+          "胶原蛋白/骨汤来源"
+        ],
+        "lifestyle": [
+          "负重训练每周2–3次（刺激骨形成）",
+          "系统性的拉伸与体态训练",
+          "减少长时间低头使用手机",
+          "物理治疗、按摩或针灸可作为第一步"
+        ],
+        "tests": [
+          "骨密度（DXA）",
+          "维生素D、血钙、血磷、PTH",
+          "腰臀比、体脂率",
+          "脊柱/关节影像学检查"
+        ],
+        "notes": "负重训练时补充钙和维生素D效果更佳；没有阻力刺激，与骨形成相关的基因将保持'关闭'状态。"
+      }
+    }
+  }
+}
