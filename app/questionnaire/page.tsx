@@ -44,12 +44,12 @@ import {
   FM_IMBALANCES,
 } from "@/lib/functional-survey/questions";
 import {
-  FM_LIFESTYLE_ORDER,
-  FM_MODULE_SECTION,
-  type FMModuleId,
+  FM_TOPIC_ORDER,
+  TOPIC_OVERRIDES,
+  isDetailed,
+  hasFunctionalSurvey,
 } from "@/lib/functional-survey/config";
 import {
-  FM_OVERRIDDEN_L_QUESTIONS,
   deriveBasicsFromFM,
   deriveLifestyleFromFM,
   computeFunctionalLoad,
@@ -112,19 +112,18 @@ export default function QuestionnairePage() {
         list.push({ key: d.key, label: d.key, icon: d.icon, kind: "chli", dimKey: d.key })
       );
     }
-    for (const mid of FM_LIFESTYLE_ORDER) {
-      if (config.fmModules.includes(mid)) {
-        const sid = FM_MODULE_SECTION[mid];
+    for (const topic of FM_TOPIC_ORDER) {
+      if (isDetailed(config, topic)) {
         list.push({
-          key: mid,
-          label: FM_SECTION_META[sid]?.label ?? sid,
-          icon: FM_SECTION_META[sid]?.icon ?? ClipboardList,
+          key: topic,
+          label: FM_SECTION_META[topic]?.label ?? topic,
+          icon: FM_SECTION_META[topic]?.icon ?? ClipboardList,
           kind: "fm-section",
-          sectionId: sid,
+          sectionId: topic,
         });
       }
     }
-    if (config.fmModules.includes("fm_stage1")) {
+    if (isDetailed(config, "imbalance")) {
       list.push({ key: "fm_stage1", label: "总体评估", icon: Compass, kind: "fm-stage1" });
       list.push({ key: "fm_transition", label: "评估结果", icon: Microscope, kind: "fm-transition" });
       const cats = fmStage1?.selection.selected ?? [];
@@ -144,7 +143,7 @@ export default function QuestionnairePage() {
   const current = steps[Math.min(step, steps.length - 1)];
   const progress = ((step + 1) / steps.length) * 100;
   const isLast = step >= steps.length - 1;
-  const hasFm = config.fmModules.length > 0;
+  const hasFm = hasFunctionalSurvey(config);
 
   /* ---------- CHLI 值读写 ---------- */
   const getRaw = (path: string): unknown => {
@@ -189,14 +188,12 @@ export default function QuestionnairePage() {
     setValue(p, getValue(p) === 1 ? 0 : 1);
   };
 
-  /** 当前 CHLI 维度题目（功能医学模块覆盖的题目自动跳过） */
+  /** 当前 CHLI 维度题目（主题为详查/跳过时，对应简单题目自动跳过） */
   const getDimQuestions = (dimKey: string) => {
     const overridden = new Set<string>();
-    if (dimKey === "L") {
-      for (const mid of config.fmModules) {
-        const sid = FM_MODULE_SECTION[mid];
-        for (const qid of FM_OVERRIDDEN_L_QUESTIONS[sid] ?? []) overridden.add(qid);
-      }
+    for (const topic of Object.keys(TOPIC_OVERRIDES)) {
+      if (config.topics[topic as keyof typeof config.topics] === "simple") continue;
+      for (const qid of TOPIC_OVERRIDES[topic][dimKey] ?? []) overridden.add(qid);
     }
     return QUESTIONS.filter((q) => q.dimension === dimKey && !overridden.has(q.id));
   };
@@ -245,18 +242,15 @@ export default function QuestionnairePage() {
     try {
       // 1. 组装评估输入（功能医学数据反哺）
       const input = structuredClone(data) as typeof data;
-      const fmSectionIds = config.fmModules
-        .map((m) => FM_MODULE_SECTION[m])
-        .filter((s) => s !== "overall" && s !== "stage2");
 
-      if (config.fmModules.includes("fm_basic")) {
+      if (config.topics.basic === "detailed") {
         const basics = deriveBasicsFromFM(fmAnswers);
         if (basics.gender) (input as unknown as Record<string, unknown>).gender = basics.gender;
         if (basics.actualAge) input.bio.actualAge = basics.actualAge;
         if (basics.bmi) input.metabolic.bmi = basics.bmi;
       }
-      const lifestyleSections = ["habits", "diet", "exercise", "sleep"].filter((s) =>
-        fmSectionIds.includes(s)
+      const lifestyleSections = (["habits", "diet", "exercise", "sleep"] as const).filter(
+        (t) => config.topics[t] === "detailed"
       );
       const derived = deriveLifestyleFromFM(fmAnswers, lifestyleSections);
       if (derived.weeklyExercise !== undefined) input.lifestyle.weeklyExercise = derived.weeklyExercise;

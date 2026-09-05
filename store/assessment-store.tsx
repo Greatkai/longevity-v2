@@ -14,20 +14,9 @@ import type {
 } from "@/lib/chli-model";
 import { DEFAULT_ASSESSMENT } from "@/lib/questionnaire-data";
 import type { FMAnswers, FMStage1Score, FMSelection } from "@/lib/functional-survey/types";
-import type { FMModuleId } from "@/lib/functional-survey/config";
+import { DEFAULT_CONFIG, type AssessmentConfig } from "@/lib/functional-survey/config";
 
-/** 评估配置：本次评估包含的问卷模块 */
-export interface AssessmentConfig {
-  /** 参与评估的 CHLI 维度 key（B/F/M/L/P/D） */
-  chliDimensions: string[];
-  /** 功能医学问卷模块（ Lifestyle 各节 + stage1 + stage2） */
-  fmModules: FMModuleId[];
-}
-
-export const DEFAULT_CONFIG: AssessmentConfig = {
-  chliDimensions: ["B", "F", "M", "L", "P", "D"],
-  fmModules: [],
-};
+export type { AssessmentConfig };
 
 interface AssessmentContextType {
   data: AssessmentInput;
