@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth-store";
 import { FunctionalImbalance } from "@/components/report/FunctionalImbalance";
 import type { FunctionalSummary } from "@/lib/chli-model";
-import { FM_IMBALANCES } from "@/lib/functional-survey/questions";
+import { FM_IMBALANCES, FM_QUESTION_BY_ID } from "@/lib/functional-survey/questions";
 import {
   computeFunctionalLoad,
   summarizeCategories,
@@ -79,7 +79,7 @@ function buildSummary(detail: SurveyDetail): FunctionalSummary | null {
             .slice(0, 12)
             .map(([qid, v]) => ({
               qid,
-              text: qid,
+              text: FM_QUESTION_BY_ID[qid]?.text ?? qid,
               status: v.status,
               old: v.old,
               new: v.new,

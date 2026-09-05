@@ -93,6 +93,7 @@ export default function QuestionnairePage() {
     fmAnswers,
     fmStage1,
     setValue,
+    setConfig,
     setFmAnswer,
     setFmStage1,
     setResult,
@@ -437,7 +438,8 @@ export default function QuestionnairePage() {
             <SetupPanel
               config={config}
               onChange={(c) => {
-                // 配置变化后重置 Stage1 结果，避免类别选择过期
+                // 保存新配置；配置变化后重置 Stage1 结果，避免类别选择过期
+                setConfig(c);
                 setFmStage1(null);
               }}
               onStart={() => {
