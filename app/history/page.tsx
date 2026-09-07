@@ -11,6 +11,8 @@ import {
   Clock,
   ClipboardList,
   ShieldCheck,
+  History,
+  PenLine,
 } from "lucide-react";
 import { RISK_META } from "@/lib/chli-model";
 import { useAssessment } from "@/store/assessment-store";
@@ -24,12 +26,20 @@ interface ReportItem {
   payload: AssessmentResult;
 }
 
+/** 未完成的评估草稿 */
+interface DraftInfo {
+  updatedAt: string;
+  step: number;
+}
+
 export default function HistoryPage() {
   const router = useRouter();
   const { setResult } = useAssessment();
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [draft, setDraft] = useState<DraftInfo | null>(null);
+  const [discarding, setDiscarding] = useState(false);
 
   const loadReports = async () => {
     setLoading(true);
@@ -46,8 +56,36 @@ export default function HistoryPage() {
     }
   };
 
+  /** 读取未完成的暂存评估 */
+  const loadDraft = async () => {
+    try {
+      const res = await fetch("/api/survey-draft");
+      if (!res.ok) return;
+      const json = await res.json();
+      if (json.draft && Number(json.draft.step) >= 1) {
+        setDraft({ updatedAt: json.draft.updatedAt, step: Number(json.draft.step) });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  /** 放弃未完成的评估 */
+  const discardDraft = async () => {
+    setDiscarding(true);
+    try {
+      await fetch("/api/survey-draft", { method: "DELETE" });
+      setDraft(null);
+    } catch {
+      // ignore
+    } finally {
+      setDiscarding(false);
+    }
+  };
+
   useEffect(() => {
     loadReports();
+    loadDraft();
   }, []);
 
   const viewReport = async (id: number) => {
@@ -102,6 +140,48 @@ export default function HistoryPage() {
               </p>
             </div>
           </div>
+
+          {/* 未完成的评估（暂存草稿） */}
+          {!loading && draft && (
+            <div className="card mt-8 flex flex-col gap-4 border-2 border-emerald-200 bg-gradient-to-r from-emerald-50/70 to-white p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 text-white shadow-md">
+                  <History className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-bold text-ink-900">有一份未完成的评估</p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
+                    <Clock className="h-3.5 w-3.5" />
+                    暂存于{" "}
+                    {new Date(draft.updatedAt).toLocaleString("zh-CN", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    ，可从上次的位置继续填写
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={discardDraft}
+                  disabled={discarding}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-ink-500 transition-all hover:bg-brand-50 disabled:opacity-50"
+                >
+                  {discarding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  放弃
+                </button>
+                <Link
+                  href="/questionnaire?resume=1"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg"
+                >
+                  <PenLine className="h-4 w-4" />
+                  续填
+                </Link>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="mt-12 flex flex-col items-center justify-center py-16">

@@ -154,3 +154,17 @@ export async function getFMSurveyById(
   );
   return rows[0] as FMSurveyResponseRow | undefined;
 }
+
+/** 按关联报告编码查询最近一次提交（下载问卷明细用） */
+export async function getLatestFMSurveyByReportCode(
+  reportCode: string
+): Promise<FMSurveyResponseRow | undefined> {
+  const { rows } = await pool.query(
+    `SELECT * FROM functional_survey_responses
+     WHERE LOWER(report_code) = LOWER($1)
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [reportCode]
+  );
+  return rows[0] as FMSurveyResponseRow | undefined;
+}

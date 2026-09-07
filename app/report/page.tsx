@@ -28,10 +28,11 @@ import { FunctionalImbalance } from "@/components/report/FunctionalImbalance";
 
 export default function ReportPage() {
   const router = useRouter();
-  const { result, data, reset } = useAssessment();
+  const { result, data, reset, fmAnswers } = useAssessment();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [downloadingSurvey, setDownloadingSurvey] = useState(false);
   // 是否有人工解读（有则隐藏 AI 解读）
   const [hasCoach, setHasCoach] = useState(false);
   // 记录是否已自动保存，避免重复保存
@@ -103,6 +104,62 @@ export default function ReportPage() {
   const dims = [...result.dimensions].sort((a, b) => a.score - b.score);
   const weakest = dims[0];
   const strongest = dims[dims.length - 1];
+
+  /** 下载功能医学问卷结果明细（供专业评估） */
+  const handleDownloadSurvey = async () => {
+    if (!result?.functional?.included) return;
+    setDownloadingSurvey(true);
+    try {
+      const { exportSurveyPDF } = await import("@/lib/export/survey-export");
+      let answers = fmAnswers;
+      let scores: { imbalances?: unknown; mainProblems?: string[] } | null = null;
+      let name: string | null = null;
+      let phone: string | null = null;
+      let createdAt: string | null = result.createdAt;
+      // 当前会话没有答案时（从历史打开报告），从服务端按报告编码取
+      if (!answers || Object.keys(answers).length === 0) {
+        const res = await fetch(`/api/functional-survey/by-report/${result.reportCode}`);
+        if (res.ok) {
+          const json = await res.json();
+          answers = json.record.answers ?? {};
+          scores = json.record.scores ?? null;
+          name = json.record.name ?? null;
+          phone = json.record.phone ?? null;
+          createdAt = json.record.createdAt ?? createdAt;
+        }
+      } else {
+        // 从报告摘要构建评分快照
+        scores = {
+          imbalances: {
+            combined: Object.fromEntries(
+              result.functional.categories.map((c) => [
+                c.cat,
+                {
+                  rate: c.rate,
+                  selected: c.selected,
+                  stage1: { rate: c.rate, yes: 0, total: 0 },
+                  stage2: null,
+                },
+              ])
+            ),
+          },
+          mainProblems: result.functional.mainProblems,
+        };
+      }
+      await exportSurveyPDF({
+        answers: answers ?? {},
+        scores: (scores ?? null) as never,
+        reportCode: result.reportCode,
+        name,
+        phone,
+        createdAt,
+      });
+    } catch (e) {
+      console.error("下载问卷明细失败:", e);
+    } finally {
+      setDownloadingSurvey(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) {
@@ -448,7 +505,11 @@ export default function ReportPage() {
 
         {/* 功能医学失衡评估（完成功能医学问卷时展示） */}
         {result.functional && result.functional.included && (
-          <FunctionalImbalance functional={result.functional} />
+          <FunctionalImbalance
+            functional={result.functional}
+            onDownload={handleDownloadSurvey}
+            downloading={downloadingSurvey}
+          />
         )}
         </div>
 

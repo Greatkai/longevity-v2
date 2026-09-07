@@ -37,6 +37,13 @@ interface AssessmentContextType {
     s: { stage1: Record<string, FMStage1Score>; selection: FMSelection } | null
   ) => void;
   setFmSummary: (s: FunctionalSummary | null) => void;
+  /** 一次性恢复暂存的草稿（配置 + CHLI 数据 + 功能问卷答案 + Stage1 结果） */
+  loadDraft: (d: {
+    config: AssessmentConfig;
+    chliData: AssessmentInput;
+    fmAnswers: FMAnswers;
+    fmStage1: { stage1: Record<string, FMStage1Score>; selection: FMSelection } | null;
+  }) => void;
   reset: () => void;
   setResult: (r: AssessmentResult) => void;
 }
@@ -116,6 +123,23 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     setFmSummaryState(s);
   }, []);
 
+  const loadDraft = useCallback(
+    (d: {
+      config: AssessmentConfig;
+      chliData: AssessmentInput;
+      fmAnswers: FMAnswers;
+      fmStage1: { stage1: Record<string, FMStage1Score>; selection: FMSelection } | null;
+    }) => {
+      setData(d.chliData);
+      setConfigState(d.config);
+      setFmAnswers(d.fmAnswers ?? {});
+      setFmStage1State(d.fmStage1 ?? null);
+      setResultState(null);
+      setFmSummaryState(null);
+    },
+    []
+  );
+
   const reset = useCallback(() => {
     setData(structuredClone(DEFAULT_ASSESSMENT) as unknown as AssessmentInput);
     setResultState(null);
@@ -144,6 +168,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         setConfig,
         setFmStage1,
         setFmSummary,
+        loadDraft,
         reset,
         setResult,
       }}

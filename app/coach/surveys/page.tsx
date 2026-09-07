@@ -9,6 +9,7 @@ import {
   ChevronRight,
   RotateCw,
   X,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth-store";
@@ -97,6 +98,28 @@ export default function CoachSurveysPage() {
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<SurveyDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  /** 下载该份问卷的结果明细 PDF */
+  const downloadDetail = async () => {
+    if (!detail) return;
+    setDownloading(true);
+    try {
+      const { exportSurveyPDF } = await import("@/lib/export/survey-export");
+      await exportSurveyPDF({
+        answers: detail.answers as never,
+        scores: detail.scores as never,
+        reportCode: detail.reportCode,
+        name: detail.name,
+        phone: detail.phone,
+        createdAt: detail.createdAt,
+      });
+    } catch (e) {
+      console.error("下载问卷明细失败:", e);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading) {
@@ -296,12 +319,22 @@ export default function CoachSurveysPage() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={() => setDetail(null)}
-                className="rounded-lg p-2 text-ink-400 transition-colors hover:bg-brand-50 hover:text-ink-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={downloadDetail}
+                  disabled={downloading}
+                  className="inline-flex items-center gap-1.5 rounded-xl border-2 border-teal-200 bg-teal-50 px-3.5 py-2 text-xs font-semibold text-teal-700 transition-all hover:border-teal-300 hover:bg-teal-100 disabled:opacity-50"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  {downloading ? "生成中…" : "下载问卷明细"}
+                </button>
+                <button
+                  onClick={() => setDetail(null)}
+                  className="rounded-lg p-2 text-ink-400 transition-colors hover:bg-brand-50 hover:text-ink-700"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
             <div className="p-6">
               {loadingDetail ? (

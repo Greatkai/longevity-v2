@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,6 +22,10 @@ import {
   Microscope,
   Loader2,
   Layers,
+  BookOpen,
+  Save,
+  History,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,15 +33,18 @@ import {
   DIMENSIONS,
   QUESTIONS,
   LAB_CHECKLIST,
+  DEFAULT_ASSESSMENT,
 } from "@/lib/questionnaire-data";
 import { calculateCHLI } from "@/lib/chli-model";
 import type { FunctionalSummary } from "@/lib/chli-model";
 import { QuestionField } from "@/components/questionnaire/QuestionField";
 import { AIFillPanel } from "@/components/questionnaire/AIFillPanel";
 import { SetupPanel } from "@/components/questionnaire/SetupPanel";
+import { IntroPanel } from "@/components/questionnaire/IntroPanel";
 import { FMQuestionField } from "@/components/questionnaire/FMQuestionField";
 import { FMCategoryTransition } from "@/components/questionnaire/FMCategoryTransition";
 import { useAssessment } from "@/store/assessment-store";
+import { useAuth } from "@/store/auth-store";
 import {
   FM_SECTIONS,
   FM_STAGE1_SECTION,
@@ -48,6 +55,7 @@ import {
   TOPIC_OVERRIDES,
   isDetailed,
   hasFunctionalSurvey,
+  DEFAULT_CONFIG,
 } from "@/lib/functional-survey/config";
 import {
   deriveBasicsFromFM,
@@ -66,6 +74,7 @@ interface StepBase {
   icon: LucideIcon;
 }
 type Step =
+  | (StepBase & { kind: "intro" })
   | (StepBase & { kind: "setup" })
   | (StepBase & { kind: "lab" })
   | (StepBase & { kind: "chli"; dimKey: string })
@@ -87,6 +96,7 @@ const FM_SECTION_META: Record<string, { label: string; icon: LucideIcon }> = {
 
 export default function QuestionnairePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const {
     data,
     config,
@@ -96,15 +106,24 @@ export default function QuestionnairePage() {
     setConfig,
     setFmAnswer,
     setFmStage1,
+    loadDraft,
     setResult,
   } = useAssessment();
   const [step, setStep] = useState(0);
   const [showAI, setShowAI] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 暂存（草稿）
+  const [resumePrompt, setResumePrompt] = useState<{ updatedAt: string } | null>(null);
+  const [draftSaved, setDraftSaved] = useState(false);
+  const draftRef = useRef<{ payload: Record<string, unknown>; step: number } | null>(null);
+  const draftLoadedRef = useRef(false);
 
   /** 由配置生成步骤序列（fmStage1 出结果后自动追加 Stage2 步骤） */
   const steps = useMemo<Step[]>(() => {
-    const list: Step[] = [{ key: "setup", label: "配置", icon: Layers, kind: "setup" }];
+    const list: Step[] = [
+      { key: "intro", label: "说明", icon: BookOpen, kind: "intro" },
+      { key: "setup", label: "配置", icon: Layers, kind: "setup" },
+    ];
     const dims = DIMENSIONS.filter((d) => config.chliDimensions.includes(d.key));
     if (dims.length > 0) {
       list.push({ key: "LAB", label: "检查", icon: FileSearch, kind: "lab" });
@@ -144,6 +163,96 @@ export default function QuestionnairePage() {
   const progress = ((step + 1) / steps.length) * 100;
   const isLast = step >= steps.length - 1;
   const hasFm = hasFunctionalSurvey(config);
+
+  /* ---------- 暂存（草稿） ---------- */
+
+  /** 将草稿内容恢复到 store 并跳到对应步骤 */
+  const applyDraft = useCallback(
+    (payload: Record<string, unknown>, stepSaved: number) => {
+      loadDraft({
+        config: payload.config as Parameters<typeof loadDraft>[0]["config"],
+        chliData: payload.chli_data as Parameters<typeof loadDraft>[0]["chliData"],
+        fmAnswers: (payload.fm_answers ?? {}) as Parameters<typeof loadDraft>[0]["fmAnswers"],
+        fmStage1: (payload.fm_stage1 ?? null) as Parameters<typeof loadDraft>[0]["fmStage1"],
+      });
+      setStep(stepSaved);
+      setResumePrompt(null);
+      window.scrollTo({ top: 0 });
+    },
+    [loadDraft]
+  );
+
+  /** 立即暂存 */
+  const saveDraftNow = useCallback(
+    async (toast: boolean) => {
+      if (!user) return;
+      try {
+        await fetch("/api/survey-draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            payload: {
+              config,
+              chli_data: data,
+              fm_answers: fmAnswers,
+              fm_stage1: fmStage1,
+            },
+            step,
+          }),
+        });
+        if (toast) {
+          setDraftSaved(true);
+          setTimeout(() => setDraftSaved(false), 2500);
+        }
+      } catch {
+        console.error("暂存失败");
+      }
+    },
+    [user, config, data, fmAnswers, fmStage1, step]
+  );
+
+  /** 删除草稿（生成报告或放弃续填时） */
+  const clearDraft = useCallback(async () => {
+    try {
+      await fetch("/api/survey-draft", { method: "DELETE" });
+    } catch {
+      // 忽略
+    }
+  }, []);
+
+  // 进入页面：读取草稿，有进度则询问续填（?resume=1 直接续填）
+  useEffect(() => {
+    if (!user || draftLoadedRef.current) return;
+    draftLoadedRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/survey-draft");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.draft) return;
+        const payload = json.draft.payload as Record<string, unknown>;
+        const stepSaved = Number(json.draft.step) || 0;
+        const fmCount = Object.keys((payload.fm_answers as Record<string, unknown>) ?? {}).length;
+        if (stepSaved < 1 && fmCount === 0) return;
+        draftRef.current = { payload, step: stepSaved };
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("resume") === "1") {
+          applyDraft(payload, stepSaved);
+        } else {
+          setResumePrompt({ updatedAt: json.draft.updatedAt });
+        }
+      } catch {
+        // 草稿读取失败不阻塞填写
+      }
+    })();
+  }, [user, applyDraft]);
+
+  // 自动暂存：登录后任何内容/步骤变化，防抖 1.5s 保存
+  useEffect(() => {
+    if (!user || !draftLoadedRef.current) return;
+    const t = setTimeout(() => saveDraftNow(false), 1500);
+    return () => clearTimeout(t);
+  }, [data, config, fmAnswers, fmStage1, step, user, saveDraftNow]);
 
   /* ---------- CHLI 值读写 ---------- */
   const getRaw = (path: string): unknown => {
@@ -322,6 +431,7 @@ export default function QuestionnairePage() {
         }
         result.functional = functional;
         setResult(result);
+        void clearDraft();
         router.push("/report");
         return;
       }
@@ -331,6 +441,7 @@ export default function QuestionnairePage() {
         enabledDimensions: config.chliDimensions,
       });
       setResult(result);
+      void clearDraft();
       router.push("/report");
     } catch (e) {
       console.error("生成报告失败:", e);
@@ -351,25 +462,29 @@ export default function QuestionnairePage() {
             长寿指数评估
           </span>
           <h1 className="mt-4 text-3xl font-bold text-ink-900 md:text-4xl">
-            {current.kind === "setup" ? (
+            {current.kind === "intro" ? (
+              <>评估<span className="text-gradient">填写说明</span></>
+            ) : current.kind === "setup" ? (
               <>选择您的<span className="text-gradient">评估模块</span></>
             ) : (
               <>健康评估<span className="text-gradient">问卷</span></>
             )}
           </h1>
           <p className="mt-3 text-ink-600">
-            {current.kind === "setup"
+            {current.kind === "intro"
+              ? "开始前请花 1 分钟了解长寿指数的构成与评估深度的差异"
+              : current.kind === "setup"
               ? "按需选择评估模块，查看各模块介绍与预估用时；后续可随时调整"
               : "完成各模块填写，或使用 AI 智能填写快速录入"}
           </p>
         </div>
 
-        {/* 配置步骤不显示进度条 */}
-        {current.kind !== "setup" && (
+        {/* 说明/配置步骤不显示进度条 */}
+        {current.kind !== "intro" && current.kind !== "setup" && (
           <div className="mx-auto mt-10 max-w-4xl">
             <div className="flex items-center justify-between text-sm">
               <span className="rounded-full bg-brand-100 px-3 py-1 font-semibold text-brand-700">
-                第 {step} / {steps.length - 1} 步
+                第 {step - 1} / {steps.length - 2} 步
               </span>
               <span className="font-semibold text-brand-600">{Math.round(progress)}%</span>
             </div>
@@ -380,10 +495,10 @@ export default function QuestionnairePage() {
               />
             </div>
 
-            {/* 步骤指示器 */}
+            {/* 步骤指示器（不含说明与配置） */}
             <div className="mt-7 grid grid-cols-4 gap-2.5 sm:grid-cols-5 md:grid-cols-8">
-              {steps.slice(1).map((s, i) => {
-                const idx = i + 1;
+              {steps.slice(2).map((s, i) => {
+                const idx = i + 2;
                 const active = idx === step;
                 const done = idx < step;
                 return (
@@ -410,7 +525,7 @@ export default function QuestionnairePage() {
 
         {/* 内容区 */}
         <div className="mx-auto mt-8 max-w-4xl">
-          {current.kind !== "setup" && (
+          {current.kind !== "setup" && current.kind !== "intro" && (
             <div className="mb-5 flex justify-end">
               <button
                 onClick={() => setShowAI(!showAI)}
@@ -422,7 +537,7 @@ export default function QuestionnairePage() {
             </div>
           )}
 
-          {showAI && current.kind !== "setup" && (
+          {showAI && current.kind !== "setup" && current.kind !== "intro" && (
             <div className="mb-8 animate-fade-in">
               <AIFillPanel onFilled={() => {}} />
             </div>
@@ -545,8 +660,18 @@ export default function QuestionnairePage() {
             />
           )}
 
+          {current.kind === "intro" && (
+            <IntroPanel
+              loggedIn={!!user}
+              onStart={() => {
+                setStep(1);
+                window.scrollTo({ top: 0 });
+              }}
+            />
+          )}
+
           {/* 导航按钮 */}
-          {current.kind !== "setup" && current.kind !== "fm-transition" && (
+          {current.kind !== "setup" && current.kind !== "intro" && current.kind !== "fm-transition" && (
             <div className="mt-6 flex items-center justify-between gap-4">
               <button
                 onClick={goPrev}
@@ -558,6 +683,18 @@ export default function QuestionnairePage() {
               </button>
 
               <div className="flex items-center gap-4">
+                {user && (
+                  <button
+                    onClick={async () => {
+                      await saveDraftNow(true);
+                      router.push("/");
+                    }}
+                    className="inline-flex items-center gap-1.5 text-sm text-ink-400 transition-colors hover:text-emerald-600"
+                  >
+                    <Save className="h-4 w-4" />
+                    暂存退出
+                  </button>
+                )}
                 <Link href="/" className="text-sm text-ink-400 hover:text-brand-600">
                   取消
                 </Link>
@@ -584,7 +721,7 @@ export default function QuestionnairePage() {
           )}
 
           {/* 返回配置 */}
-          {current.kind === "setup" && (
+          {(current.kind === "setup" || current.kind === "intro") && (
             <div className="mt-6 flex justify-center">
               <Link href="/" className="text-sm text-ink-400 hover:text-brand-600">
                 返回首页
@@ -593,7 +730,7 @@ export default function QuestionnairePage() {
           )}
 
           {/* 完成提示 */}
-          {isLast && current.kind !== "setup" && (
+          {isLast && current.kind !== "setup" && current.kind !== "intro" && (
             <div className="mt-4 flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">
               <Check className="mt-0.5 h-4 w-4 shrink-0" />
               恭喜完成所有填写！点击「生成评估报告」即可查看您的长寿指数分析
@@ -602,6 +739,84 @@ export default function QuestionnairePage() {
           )}
         </div>
       </div>
+
+      {/* 续填询问弹窗 */}
+      {resumePrompt && draftRef.current && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="card w-full max-w-md p-6 animate-fade-up">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-400 text-white shadow-lg">
+                  <History className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-bold text-ink-900">检测到未完成的评估</h3>
+                  <p className="text-xs text-ink-400">
+                    暂存于{" "}
+                    {new Date(resumePrompt.updatedAt).toLocaleString("zh-CN", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setResumePrompt(null)}
+                className="rounded-lg p-1.5 text-ink-300 transition-colors hover:bg-brand-50 hover:text-ink-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-ink-600">
+              上次填写的进度已自动保存，是否从上次的位置继续填写？重新开始将清除已暂存的进度。
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                onClick={async () => {
+                  draftRef.current = null;
+                  setResumePrompt(null);
+                  await clearDraft();
+                  // 重置为默认配置后回到说明页
+                  loadDraft({
+                    config: structuredClone(DEFAULT_CONFIG),
+                    chliData: structuredClone(DEFAULT_ASSESSMENT) as Parameters<
+                      typeof loadDraft
+                    >[0]["chliData"],
+                    fmAnswers: {},
+                    fmStage1: null,
+                  });
+                  setStep(0);
+                }}
+                className="btn-secondary px-4 py-2 text-sm"
+              >
+                重新开始
+              </button>
+              <button
+                onClick={() => {
+                  const d = draftRef.current!;
+                  applyDraft(d.payload, d.step);
+                }}
+                className="btn-primary px-5 py-2 text-sm"
+              >
+                <History className="h-4 w-4" />
+                继续填写
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 暂存成功提示 */}
+      {draftSaved && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-fade-up">
+          <div className="flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-xl">
+            <Save className="h-4 w-4" />
+            进度已暂存，可随时回来续填
+          </div>
+        </div>
+      )}
     </div>
   );
 }

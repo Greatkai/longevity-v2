@@ -63,7 +63,7 @@ export async function exportReport(
 /* ==================== 手机端分享长图（Canvas 绘制） ==================== */
 
 /** 圆角矩形路径 */
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -74,7 +74,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 }
 
 /** 绘制多行文本（自动换行），返回结束 y */
-function wrapText(
+export function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
   x: number,
@@ -544,12 +544,12 @@ function shortDimName(name: string): string {
 
 /* ==================== A4 PDF 文档排版（Canvas 绘制） ==================== */
 
-const A4W = 794;
-const A4H = 1123;
-const SCALE = 1.5;
-const MARGIN = 56;
+export const A4W = 794;
+export const A4H = 1123;
+export const SCALE = 1.5;
+export const MARGIN = 56;
 
-function createA4Canvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+export function createA4Canvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const canvas = document.createElement("canvas");
   canvas.width = A4W * SCALE;
   canvas.height = A4H * SCALE;
@@ -559,7 +559,7 @@ function createA4Canvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingCont
 }
 
 /** 文档页眉 */
-function drawDocHeader(ctx: CanvasRenderingContext2D) {
+export function drawDocHeader(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = "#0A5BA8";
   ctx.fillRect(0, 0, A4W, 6);
   ctx.fillStyle = "#55677A";
@@ -578,7 +578,7 @@ function drawDocHeader(ctx: CanvasRenderingContext2D) {
 }
 
 /** 文档页脚 */
-function drawDocFooter(ctx: CanvasRenderingContext2D, page: number, total: number, dateStr: string) {
+export function drawDocFooter(ctx: CanvasRenderingContext2D, page: number, total: number, dateStr: string) {
   const fy = A4H - 40;
   ctx.strokeStyle = "#DCE9F8";
   ctx.lineWidth = 1;
