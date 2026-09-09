@@ -40,7 +40,7 @@ import type { FunctionalSummary } from "@/lib/chli-model";
 import { QuestionField } from "@/components/questionnaire/QuestionField";
 import { AIFillPanel } from "@/components/questionnaire/AIFillPanel";
 import { SetupPanel } from "@/components/questionnaire/SetupPanel";
-import { IntroPanel } from "@/components/questionnaire/IntroPanel";
+import { IntroPanel, type IntroPreset } from "@/components/questionnaire/IntroPanel";
 import { FMQuestionField } from "@/components/questionnaire/FMQuestionField";
 import { FMCategoryTransition } from "@/components/questionnaire/FMCategoryTransition";
 import { useAssessment } from "@/store/assessment-store";
@@ -56,6 +56,8 @@ import {
   isDetailed,
   hasFunctionalSurvey,
   DEFAULT_CONFIG,
+  SIMPLE_PRESET,
+  DETAILED_PRESET,
 } from "@/lib/functional-survey/config";
 import {
   deriveBasicsFromFM,
@@ -112,6 +114,8 @@ export default function QuestionnairePage() {
   const [step, setStep] = useState(0);
   const [showAI, setShowAI] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // 说明页选中的评估模式（simple/detailed 直接开始填写；custom 进入配置页）
+  const [introPreset, setIntroPreset] = useState<IntroPreset>("simple");
   // 暂存（草稿）
   const [resumePrompt, setResumePrompt] = useState<{ updatedAt: string } | null>(null);
   const [draftSaved, setDraftSaved] = useState(false);
@@ -552,7 +556,8 @@ export default function QuestionnairePage() {
                 setFmStage1(null);
               }}
               onStart={() => {
-                setStep(1);
+                // 步骤结构：0=说明 1=配置 2=开始填写
+                setStep(2);
                 window.scrollTo({ top: 0 });
               }}
             />
@@ -663,8 +668,17 @@ export default function QuestionnairePage() {
           {current.kind === "intro" && (
             <IntroPanel
               loggedIn={!!user}
-              onStart={() => {
-                setStep(1);
+              config={config}
+              selected={introPreset}
+              onSelect={(preset) => {
+                setIntroPreset(preset);
+                // 简单版/详查版预设立即应用配置；自定义保留当前配置
+                if (preset === "simple") setConfig(structuredClone(SIMPLE_PRESET));
+                if (preset === "detailed") setConfig(structuredClone(DETAILED_PRESET));
+              }}
+              onContinue={(preset) => {
+                // 简单版/详查版直接开始填写（跳过配置页）；自定义进入配置页
+                setStep(preset === "custom" ? 1 : 2);
                 window.scrollTo({ top: 0 });
               }}
             />

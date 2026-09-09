@@ -56,6 +56,27 @@ export const DEFAULT_CONFIG: AssessmentConfig = {
   },
 };
 
+/** 全部 CHLI 维度 */
+export const ALL_DIMS = ["B", "F", "M", "L", "P", "D"];
+
+/** 快速版预设：全部简单版，跳过附加主题（约 7 分钟） */
+export const SIMPLE_PRESET: AssessmentConfig = structuredClone(DEFAULT_CONFIG);
+
+/** 专业版预设：全部详查，含功能失衡评估（约 40-50 分钟） */
+export const DETAILED_PRESET: AssessmentConfig = {
+  chliDimensions: [...ALL_DIMS],
+  topics: {
+    basic: "detailed",
+    exercise: "detailed",
+    sleep: "detailed",
+    diet: "detailed",
+    habits: "detailed",
+    disease: "detailed",
+    discomfort: "detailed",
+    imbalance: "detailed",
+  },
+};
+
 /** 主题是否为详查模式 */
 export function isDetailed(config: AssessmentConfig, topic: TopicId): boolean {
   return config.topics[topic] === "detailed";
