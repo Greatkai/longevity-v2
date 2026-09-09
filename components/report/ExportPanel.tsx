@@ -61,14 +61,14 @@ export function ExportPanel({ result, onSurveyDetail }: Props) {
 
       // 完成功能医学问卷时，追加「附：问卷逐题答案明细」页
       let appendixNote = "";
-      if (result.functional?.included && onSurveyDetail) {
+      if (onSurveyDetail) {
         try {
           const detail = await onSurveyDetail();
           if (detail) {
             const { buildSurveyDetailPages } = await import("@/lib/export/survey-export");
             pages.push(...buildSurveyDetailPages(detail));
           } else {
-            appendixNote = "（未找到问卷明细数据，未包含附页）";
+            appendixNote = "（本次评估未包含问卷明细，未添加附页）";
           }
         } catch (e) {
           appendixNote = "（问卷明细附页生成失败）";

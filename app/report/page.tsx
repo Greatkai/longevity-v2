@@ -25,6 +25,7 @@ import { ExportPanel } from "@/components/report/ExportPanel";
 import { CalcDetails } from "@/components/report/CalcDetails";
 import { CoachInterpretation } from "@/components/report/CoachInterpretation";
 import { FunctionalImbalance } from "@/components/report/FunctionalImbalance";
+import { summarizeCategories as summarizeCategoriesLocal } from "@/lib/functional-survey/derive";
 
 export default function ReportPage() {
   const router = useRouter();
@@ -123,11 +124,12 @@ export default function ReportPage() {
 
   /** 解析问卷明细数据：优先本地会话，否则按报告编码从服务端取 */
   const resolveSurveyDetail = async () => {
-    if (!result?.functional?.included) return null;
     let answers = fmAnswers;
     let name: string | null = null;
     let phone: string | null = null;
     let createdAt: string | null = result.createdAt;
+    let categories = result.functional?.categories ?? [];
+    let problems = result.functional?.mainProblems ?? [];
     if (!answers || Object.keys(answers).length === 0) {
       const res = await fetch(`/api/functional-survey/by-report/${result.reportCode}`);
       if (!res.ok) return null;
@@ -136,12 +138,18 @@ export default function ReportPage() {
       name = json.record.name ?? null;
       phone = json.record.phone ?? null;
       createdAt = json.record.createdAt ?? createdAt;
+      // 服务端评分快照中包含失衡评分与摘要
+      const im = json.record.scores?.imbalances;
+      if (im) {
+        categories = summarizeCategoriesLocal(im);
+        problems = json.record.scores?.mainProblems ?? problems;
+      }
     }
     if (!answers || Object.keys(answers).length === 0) return null;
     return {
       answers: answers as never,
-      categories: result.functional.categories,
-      problems: result.functional.mainProblems,
+      categories,
+      problems,
       reportCode: result.reportCode,
       name,
       phone,

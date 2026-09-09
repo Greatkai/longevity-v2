@@ -66,7 +66,11 @@ import {
   computeFunctionalLoad,
   summarizeCategories,
 } from "@/lib/functional-survey/derive";
-import { scoreStage1, selectCategories } from "@/lib/functional-survey/scoring";
+import {
+  scoreStage1,
+  selectCategories,
+  buildMainProblems,
+} from "@/lib/functional-survey/scoring";
 import type { FMQuestion, FMCategories } from "@/lib/functional-survey/types";
 
 /* ---------------- 步骤模型 ---------------- */
@@ -122,6 +126,9 @@ export default function QuestionnairePage() {
   const [draftSaved, setDraftSaved] = useState(false);
   const draftRef = useRef<{ payload: Record<string, unknown>; step: number } | null>(null);
   const draftLoadedRef = useRef(false);
+  // AI 填写后的智能导航
+  const [showMissing, setShowMissing] = useState(false);
+  const [aiNavMsg, setAiNavMsg] = useState<string | null>(null);
 
   /** 由配置生成步骤序列（fmStage1 出结果后自动追加 Stage2 步骤） */
   const steps = useMemo<Step[]>(() => {
@@ -345,6 +352,66 @@ export default function QuestionnairePage() {
     return QUESTIONS.filter((q) => q.dimension === dimKey && !overridden.has(q.id));
   };
 
+  // 进入过渡页时若 Stage1 尚未评分（如 AI 填写后直接跳转），自动计算类别
+  useEffect(() => {
+    if (current.kind === "fm-transition" && !fmStage1) {
+      const stage1 = scoreStage1(fmAnswers);
+      setFmStage1({ stage1, selection: selectCategories(stage1) });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.kind]);
+
+  /* ---------- AI 填写后的智能导航 ---------- */
+
+  /** 分析各步骤未填写的题目数量，返回待补充步骤（按顺序） */
+  const analyzeMissingSteps = () => {
+    const result: { step: number; label: string; missing: number }[] = [];
+    steps.forEach((s, idx) => {
+      if (idx < 2) return;
+      if (s.kind === "chli") {
+        const missing = getDimQuestions(s.dimKey).filter((q) => {
+          if (q.type === "lab") return getLabValue(q.path).value === null && !getLabValue(q.path).available;
+          return getValue(q.path) === null;
+        }).length;
+        if (missing > 0) result.push({ step: idx, label: s.label, missing });
+      } else if (s.kind === "fm-section" || s.kind === "fm-stage1") {
+        const sec = FM_SECTIONS.find(
+          (x) => x.id === (s.kind === "fm-stage1" ? "overall" : s.sectionId)
+        );
+        const missing = sec
+          ? sec.questions.filter((q) => isFmValueEmpty(fmAnswers[q.qid])).length
+          : 0;
+        if (missing > 0) result.push({ step: idx, label: s.label, missing });
+      } else if (s.kind === "fm-stage2") {
+        const sec = FM_SECTIONS.find((x) => x.id === categoryToSection(s.category));
+        const missing = sec
+          ? sec.questions.filter((q) => isFmValueEmpty(fmAnswers[q.qid])).length
+          : 0;
+        if (missing > 0) result.push({ step: idx, label: s.label, missing });
+      } else if (s.kind === "fm-transition" && !fmStage1) {
+        // Stage1 尚未评分：失衡评估流程未走完
+        result.push({ step: idx, label: "失衡评估", missing: 1 });
+      }
+    });
+    return result;
+  };
+
+  /** AI 提取完成后：全齐则跳到生成步骤，否则定位到第一个待补充步骤并高亮 */
+  const handleAIFilled = () => {
+    const missingSteps = analyzeMissingSteps();
+    setShowMissing(true);
+    if (missingSteps.length === 0) {
+      setAiNavMsg("AI 已完成全部填写，可直接点击「生成评估报告」");
+      setStep(steps.length - 1);
+    } else {
+      const total = missingSteps.reduce((sum, m) => sum + m.missing, 0);
+      setAiNavMsg(`还有 ${total} 题待补充，已定位到「${missingSteps[0].label}」，黄色高亮为待填题目`);
+      setStep(missingSteps[0].step);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => setAiNavMsg(null), 5000);
+  };
+
   /* ---------- 导航 ---------- */
   const goNext = async () => {
     // Stage1 完成：先计算类别并追加 Stage2 步骤，不直接生成报告
@@ -448,9 +515,9 @@ export default function QuestionnairePage() {
             reportCode: result.reportCode,
           }),
         });
-        const submitted = await res.json();
+        const submitted = res.ok ? await res.json() : null;
 
-        if (res.ok) {
+        if (submitted) {
           const serverIm = submitted.imbalances;
           functional = {
             included: true,
@@ -481,6 +548,24 @@ export default function QuestionnairePage() {
                     })),
                 }
               : null,
+          };
+        } else {
+          // 提交失败（如数据库不可达）：使用本地计算结果兜底，保证报告与 PDF 附页完整
+          const localProblems = buildMainProblems(fmAnswers);
+          functional = {
+            included: true,
+            loadRate: computeFunctionalLoad(imbalances),
+            categories: summarizeCategories(imbalances),
+            mainProblems: localProblems.lines,
+            interventions: summarizeCategories(imbalances)
+              .filter((c) => c.selected)
+              .map((c) => ({
+                cat: c.cat,
+                name: c.name,
+                icon: c.icon,
+                ...FM_IMBALANCES[c.cat as FMCategories].intervention,
+              })),
+            retest: null,
           };
         }
         result.functional = functional;
@@ -593,7 +678,7 @@ export default function QuestionnairePage() {
 
           {showAI && current.kind !== "setup" && current.kind !== "intro" && (
             <div className="mb-8 animate-fade-in">
-              <AIFillPanel onFilled={() => {}} />
+              <AIFillPanel onFilled={handleAIFilled} />
             </div>
           )}
 
@@ -683,6 +768,7 @@ export default function QuestionnairePage() {
               getValue={getValue}
               getLabValue={getLabValue}
               setValue={setValue}
+              highlightMissing={showMissing}
               extraQuestions={
                 current.dimKey === chliMergeHost ? mergedLQuestions : undefined
               }
@@ -694,6 +780,7 @@ export default function QuestionnairePage() {
               sectionId={current.kind === "fm-stage1" ? "overall" : current.sectionId}
               answers={fmAnswers}
               onAnswer={setFmAnswer}
+              highlightMissing={showMissing}
               extraQuestions={
                 current.kind === "fm-section" && current.sectionId === fmMergeTarget
                   ? mergedLQuestions
@@ -720,6 +807,7 @@ export default function QuestionnairePage() {
               sectionId={categoryToSection(current.category)}
               answers={fmAnswers}
               onAnswer={setFmAnswer}
+              highlightMissing={showMissing}
               categoryLabel={FM_IMBALANCES[current.category].name}
               categoryIcon={FM_IMBALANCES[current.category].icon}
             />
@@ -891,6 +979,16 @@ export default function QuestionnairePage() {
           </div>
         </div>
       )}
+
+      {/* AI 填写后导航提示 */}
+      {aiNavMsg && (
+        <div className="fixed bottom-6 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 animate-fade-up">
+          <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-sm font-semibold text-white shadow-xl">
+            <Sparkles className="h-4 w-4 shrink-0" />
+            {aiNavMsg}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -907,6 +1005,14 @@ function categoryToSection(cat: FMCategories): string {
     structure: "ch10",
   };
   return map[cat];
+}
+
+/** 判断功能医学问卷答案是否为空（未作答） */
+function isFmValueEmpty(v: unknown): boolean {
+  if (v === null || v === undefined || v === "") return true;
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === "object") return Object.keys(v as object).length === 0;
+  return false;
 }
 
 /** 计算主题详查/跳过后，L 维度剩余需要单独提问的题目 id */
@@ -940,6 +1046,7 @@ function ChliDimCard({
   getValue,
   getLabValue,
   setValue,
+  highlightMissing,
   extraQuestions,
 }: {
   dimKey: string;
@@ -947,8 +1054,18 @@ function ChliDimCard({
   getValue: (path: string) => number | null;
   getLabValue: (path: string) => { available: boolean; value: number | null };
   setValue: (path: string, value: number | null) => void;
+  highlightMissing?: boolean;
   extraQuestions?: typeof QUESTIONS;
 }) {
+  /** 待填高亮：题目未作答且处于高亮模式 */
+  const needHL = (q: typeof QUESTIONS[number]) => {
+    if (!highlightMissing) return false;
+    if (q.type === "lab") {
+      const lab = getLabValue(q.path);
+      return lab.value === null && !lab.available;
+    }
+    return getValue(q.path) === null;
+  };
   const dim = DIMENSIONS.find((d) => d.key === dimKey)!;
   return (
     <div key={dimKey} className="card card-accent animate-fade-up overflow-hidden">
@@ -974,7 +1091,13 @@ function ChliDimCard({
       <div className="space-y-8 p-6 md:p-8">
         {questions.map((q) =>
           q.type === "lab" ? (
-            <div key={q.id}>
+            <div
+              key={q.id}
+              className={cn(
+                "rounded-xl transition-all",
+                needHL(q) && "bg-amber-50/70 ring-1 ring-amber-300 p-4 -mx-4"
+              )}
+            >
               <div className="mb-3">
                 <label className="text-base font-semibold text-ink-900">{q.label}</label>
                 {q.hint && <p className="mt-0.5 text-xs text-ink-400">{q.hint}</p>}
@@ -990,7 +1113,13 @@ function ChliDimCard({
               />
             </div>
           ) : (
-            <div key={q.id}>
+            <div
+              key={q.id}
+              className={cn(
+                "rounded-xl transition-all",
+                needHL(q) && "bg-amber-50/70 ring-1 ring-amber-300 p-4 -mx-4"
+              )}
+            >
               <div className="mb-3">
                 <label className="text-base font-semibold text-ink-900">{q.label}</label>
                 {q.hint && <p className="mt-0.5 text-xs text-ink-400">{q.hint}</p>}
@@ -1000,9 +1129,9 @@ function ChliDimCard({
                 value={getValue(q.path)}
                 onChange={(v) => setValue(q.path, v)}
               />
-              </div>
-              )
-              )}
+            </div>
+          )
+        )}
 
               {/* 合并的 L 维度剩余题目（如体重管理） */}
               {extraQuestions && extraQuestions.length > 0 && (
@@ -1042,6 +1171,7 @@ function FmSectionCard({
   extraQuestions,
   getValue,
   setValue,
+  highlightMissing,
 }: {
   sectionId: string;
   answers: Record<string, unknown>;
@@ -1052,6 +1182,7 @@ function FmSectionCard({
   extraQuestions?: typeof QUESTIONS;
   getValue?: (path: string) => number | null;
   setValue?: (path: string, value: number | null) => void;
+  highlightMissing?: boolean;
 }) {
   const section = FM_SECTIONS.find((s) => s.id === sectionId);
   if (!section) return null;
@@ -1080,7 +1211,13 @@ function FmSectionCard({
 
       <div className="space-y-8 p-6 md:p-8">
         {section.questions.map((q: FMQuestion, i: number) => (
-          <div key={q.qid}>
+          <div
+            key={q.qid}
+            className={cn(
+              "rounded-xl transition-all",
+              highlightMissing && isFmValueEmpty(answers[q.qid]) && "bg-amber-50/70 ring-1 ring-amber-300 p-4 -mx-4"
+            )}
+          >
             <div className="mb-3">
               <label className="flex items-start gap-2 text-base font-semibold text-ink-900">
                 <span className="mt-0.5 shrink-0 text-xs font-bold text-brand-400">
