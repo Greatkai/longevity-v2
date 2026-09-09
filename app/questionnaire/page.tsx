@@ -414,13 +414,23 @@ export default function QuestionnairePage() {
       }
 
       // 2. 功能失衡负荷计入 L6
+      //    只要存在功能医学问卷答案（含 AI 智能填写预填的），即使配置未勾选详查主题也计算结果
       let functional: FunctionalSummary | null = null;
-      if (hasFm) {
-        // 客户端先算一次负荷（服务端提交后再以服务端结果为准）
+      const fmAnswerCount = Object.keys(fmAnswers).length;
+      if (hasFm || fmAnswerCount > 0) {
         const { computeImbalances } = await import("@/lib/functional-survey/scoring");
         const imbalances = computeImbalances(fmAnswers);
-        const loadRate = computeFunctionalLoad(imbalances);
-        input.lifestyle.functionalLoad = loadRate;
+        // 仅当失衡总体评估参与（配置勾选或已有 ov_* 答案）时才写入 L6，避免空数据给出满负荷分
+        const hasStage1Data =
+          config.topics.imbalance === "detailed" ||
+          FM_STAGE1_SECTION.questions.some((q) => {
+            const v = fmAnswers[q.qid];
+            return v !== undefined && v !== null && v !== "";
+          });
+        if (hasStage1Data) {
+          const loadRate = computeFunctionalLoad(imbalances);
+          input.lifestyle.functionalLoad = loadRate;
+        }
 
         // 3. 计算报告（先拿到 reportCode 用于关联保存）
         const result = calculateCHLI(input, {

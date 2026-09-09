@@ -60,14 +60,18 @@ export function ExportPanel({ result, onSurveyDetail }: Props) {
       const pages = await generateA4Pages(result, siteUrl, coachInterpretation);
 
       // 完成功能医学问卷时，追加「附：问卷逐题答案明细」页
+      let appendixNote = "";
       if (result.functional?.included && onSurveyDetail) {
         try {
           const detail = await onSurveyDetail();
           if (detail) {
             const { buildSurveyDetailPages } = await import("@/lib/export/survey-export");
             pages.push(...buildSurveyDetailPages(detail));
+          } else {
+            appendixNote = "（未找到问卷明细数据，未包含附页）";
           }
         } catch (e) {
+          appendixNote = "（问卷明细附页生成失败）";
           console.error("问卷明细附页生成失败（不影响主报告）:", e);
         }
       }
@@ -79,7 +83,10 @@ export function ExportPanel({ result, onSurveyDetail }: Props) {
         pdf.addImage(dataUrl, "JPEG", 0, 0, 595, 842);
       });
       pdf.save("长寿评估报告.pdf");
-      setMessage({ type: "success", text: "PDF 报告已生成，正在下载" });
+      setMessage({
+        type: "success",
+        text: `PDF 已生成，共 ${pages.length} 页${appendixNote}，正在下载`,
+      });
     } catch (e) {
       console.error("PDF 生成失败:", e);
       setMessage({ type: "error", text: "PDF 生成失败，请重试" });
