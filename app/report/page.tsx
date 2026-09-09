@@ -111,54 +111,42 @@ export default function ReportPage() {
     setDownloadingSurvey(true);
     try {
       const { exportSurveyPDF } = await import("@/lib/export/survey-export");
-      let answers = fmAnswers;
-      let scores: { imbalances?: unknown; mainProblems?: string[] } | null = null;
-      let name: string | null = null;
-      let phone: string | null = null;
-      let createdAt: string | null = result.createdAt;
-      // 当前会话没有答案时（从历史打开报告），从服务端按报告编码取
-      if (!answers || Object.keys(answers).length === 0) {
-        const res = await fetch(`/api/functional-survey/by-report/${result.reportCode}`);
-        if (res.ok) {
-          const json = await res.json();
-          answers = json.record.answers ?? {};
-          scores = json.record.scores ?? null;
-          name = json.record.name ?? null;
-          phone = json.record.phone ?? null;
-          createdAt = json.record.createdAt ?? createdAt;
-        }
-      } else {
-        // 从报告摘要构建评分快照
-        scores = {
-          imbalances: {
-            combined: Object.fromEntries(
-              result.functional.categories.map((c) => [
-                c.cat,
-                {
-                  rate: c.rate,
-                  selected: c.selected,
-                  stage1: { rate: c.rate, yes: 0, total: 0 },
-                  stage2: null,
-                },
-              ])
-            ),
-          },
-          mainProblems: result.functional.mainProblems,
-        };
-      }
-      await exportSurveyPDF({
-        answers: answers ?? {},
-        scores: (scores ?? null) as never,
-        reportCode: result.reportCode,
-        name,
-        phone,
-        createdAt,
-      });
+      const detail = await resolveSurveyDetail();
+      if (!detail) return;
+      await exportSurveyPDF(detail);
     } catch (e) {
       console.error("下载问卷明细失败:", e);
     } finally {
       setDownloadingSurvey(false);
     }
+  };
+
+  /** 解析问卷明细数据：优先本地会话，否则按报告编码从服务端取 */
+  const resolveSurveyDetail = async () => {
+    if (!result?.functional?.included) return null;
+    let answers = fmAnswers;
+    let name: string | null = null;
+    let phone: string | null = null;
+    let createdAt: string | null = result.createdAt;
+    if (!answers || Object.keys(answers).length === 0) {
+      const res = await fetch(`/api/functional-survey/by-report/${result.reportCode}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      answers = json.record.answers ?? {};
+      name = json.record.name ?? null;
+      phone = json.record.phone ?? null;
+      createdAt = json.record.createdAt ?? createdAt;
+    }
+    if (!answers || Object.keys(answers).length === 0) return null;
+    return {
+      answers: answers as never,
+      categories: result.functional.categories,
+      problems: result.functional.mainProblems,
+      reportCode: result.reportCode,
+      name,
+      phone,
+      createdAt,
+    };
   };
 
   const handleSave = async () => {
@@ -520,7 +508,7 @@ export default function ReportPage() {
 
         {/* 导出区 */}
         <div id="export" className="mt-8">
-          <ExportPanel result={result} />
+          <ExportPanel result={result} onSurveyDetail={resolveSurveyDetail} />
         </div>
       </div>
     </div>

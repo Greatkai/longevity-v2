@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
-import type { FMAnswers, FMScoreResult } from "@/lib/functional-survey/types";
-import { FM_SECTIONS, FM_IMBALANCES } from "@/lib/functional-survey/questions";
+import type { FMAnswers } from "@/lib/functional-survey/types";
+import { FM_SECTIONS } from "@/lib/functional-survey/questions";
 import { formatValue } from "@/lib/functional-survey/scoring";
 import {
   createA4Canvas,
@@ -14,15 +14,26 @@ import {
 } from "./report-export";
 
 /**
- * 功能医学问卷结果明细导出（A4 PDF）
+ * 功能医学问卷结果明细（A4 PDF 页面构建）
  * 包含：基本信息、失衡评分表、主要问题摘要、逐题答案明细
- * 供健康管理师/医生进行更专业的线下评估使用。
+ * 供健康管理师/医生进行更专业的线下评估使用；
+ * 同时作为「附页」追加到主报告 PDF。
  */
 
-export interface SurveyExportInput {
+export interface SurveyCategoryRow {
+  cat: string;
+  name: string;
+  icon: string;
+  rate: number;
+  selected: boolean;
+}
+
+export interface SurveyDetailInput {
   answers: FMAnswers;
-  /** 存储的评分快照（可空） */
-  scores?: { imbalances?: FMScoreResult; mainProblems?: string[] } | null;
+  /** 七大失衡类别评分行（来自评分快照或报告摘要） */
+  categories: SurveyCategoryRow[];
+  /** 主要问题摘要行 */
+  problems: string[];
   reportCode?: string | null;
   name?: string | null;
   phone?: string | null;
@@ -31,17 +42,16 @@ export interface SurveyExportInput {
 
 const FONT = "'PingFang SC','Microsoft YaHei',sans-serif";
 
-/** 生成并下载问卷结果明细 PDF */
-export async function exportSurveyPDF(input: SurveyExportInput): Promise<void> {
-  const { answers, scores, reportCode, name, phone, createdAt } = input;
-  const im = scores?.imbalances;
-  const problems = scores?.mainProblems ?? [];
-
+/**
+ * 构建问卷逐题明细的全部 A4 页面（dataURL 数组）
+ * 页脚编号为「附 X / 共 M」
+ */
+export function buildSurveyDetailPages(input: SurveyDetailInput): string[] {
+  const { answers, categories, problems, reportCode, name, phone, createdAt } = input;
   const dateStr = createdAt
     ? new Date(createdAt).toLocaleDateString("zh-CN")
     : new Date().toLocaleDateString("zh-CN");
 
-  // 先在画布上绘制内容（页脚最后统一画，以获得正确总页数）
   const canvases: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D }[] = [];
 
   /* ========== 第 1 页：基本信息 + 失衡评分 + 摘要 ========== */
@@ -56,7 +66,7 @@ export async function exportSurveyPDF(input: SurveyExportInput): Promise<void> {
     ctx.font = `700 26px ${FONT}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("功能医学问卷结果明细", MARGIN, y);
+    ctx.fillText("附：功能医学问卷结果明细", MARGIN, y);
     ctx.fillStyle = "#8494A6";
     ctx.font = `13px ${FONT}`;
     ctx.fillText("Functional Medicine Survey Detail · 供专业评估参考", MARGIN, y + 24);
@@ -90,7 +100,7 @@ export async function exportSurveyPDF(input: SurveyExportInput): Promise<void> {
     });
     y += infoRows.length * 30 + 20;
 
-    if (im?.combined) {
+    if (categories.length > 0) {
       ctx.fillStyle = "#0A5BA8";
       ctx.font = `700 15px ${FONT}`;
       ctx.textAlign = "left";
@@ -98,10 +108,7 @@ export async function exportSurveyPDF(input: SurveyExportInput): Promise<void> {
       ctx.fillText("二、七大失衡类别评分", MARGIN, y);
       y += 24;
       const rowH = 32;
-      const cats = Object.keys(im.combined) as (keyof typeof FM_IMBALANCES)[];
-      cats.forEach((cat, i) => {
-        const c = im.combined[cat];
-        const meta = FM_IMBALANCES[cat];
+      categories.forEach((c, i) => {
         const ry = y + i * rowH;
         ctx.fillStyle = i % 2 === 0 ? "#F8FBFD" : "#FFFFFF";
         ctx.fillRect(MARGIN, ry, A4W - MARGIN * 2, rowH);
@@ -109,31 +116,19 @@ export async function exportSurveyPDF(input: SurveyExportInput): Promise<void> {
         ctx.textAlign = "left";
         ctx.fillStyle = "#2B3A48";
         ctx.font = `13px ${FONT}`;
-        ctx.fillText(`${meta.icon} ${meta.name}`, MARGIN + 16, ry + rowH / 2);
+        ctx.fillText(`${c.icon} ${c.name}`, MARGIN + 16, ry + rowH / 2);
         ctx.textAlign = "center";
         ctx.fillStyle = c.rate >= 30 ? "#DC2626" : "#55677A";
         ctx.font = `700 13px ${FONT}`;
         ctx.fillText(`${c.rate}%`, MARGIN + 220, ry + rowH / 2);
         ctx.fillStyle = "#55677A";
         ctx.font = `12px ${FONT}`;
-        ctx.fillText(
-          c.selected ? "入选专项详查" : c.stage2 ? "已详查" : "仅总体评估",
-          MARGIN + 340,
-          ry + rowH / 2
-        );
-        ctx.textAlign = "right";
-        ctx.fillStyle = "#8494A6";
-        ctx.font = `11px ${FONT}`;
-        ctx.fillText(
-          `总体 ${c.stage1.rate}%${c.stage2 ? ` · 专项 ${c.stage2.rate}%` : ""}`,
-          A4W - MARGIN - 16,
-          ry + rowH / 2
-        );
+        ctx.fillText(c.selected ? "入选专项详查" : "总体评估", MARGIN + 340, ry + rowH / 2);
         ctx.strokeStyle = "#E8F0FA";
         ctx.lineWidth = 1;
         ctx.strokeRect(MARGIN, ry, A4W - MARGIN * 2, rowH);
       });
-      y += cats.length * rowH + 20;
+      y += categories.length * rowH + 20;
     }
 
     if (problems.length > 0) {
@@ -224,7 +219,6 @@ export async function exportSurveyPDF(input: SurveyExportInput): Promise<void> {
         ctx!.font = `600 12px ${FONT}`;
         y = wrapText(ctx!, q.text, MARGIN, y, A4W - MARGIN * 2 - 170, 20);
 
-        // 答案（右对齐栏，自动拆行）
         ctx!.fillStyle = "#0A5BA8";
         ctx!.font = `600 12px ${FONT}`;
         ctx!.textAlign = "right";
@@ -263,18 +257,24 @@ export async function exportSurveyPDF(input: SurveyExportInput): Promise<void> {
     }
   }
 
-  // 统一绘制页脚（总页数已知）
+  // 统一绘制页脚
   const total = canvases.length;
-  const dataUrls = canvases.map((c, i) => {
+  return canvases.map((c, i) => {
     drawDocFooter(c.ctx, i + 1, total, dateStr);
     return c.canvas.toDataURL("image/jpeg", 0.92);
   });
+}
 
+/** 生成并下载问卷结果明细 PDF（独立文件） */
+export async function exportSurveyPDF(input: SurveyDetailInput): Promise<void> {
+  const pages = buildSurveyDetailPages(input);
   const pdf = new jsPDF("p", "pt", "a4");
-  dataUrls.forEach((dataUrl, i) => {
+  pages.forEach((dataUrl, i) => {
     if (i > 0) pdf.addPage();
     pdf.addImage(dataUrl, "JPEG", 0, 0, 595, 842);
   });
-  const fileName = `功能医学问卷明细${name ? `-${name}` : ""}${reportCode ? `-${reportCode}` : ""}.pdf`;
+  const fileName = `功能医学问卷明细${input.name ? `-${input.name}` : ""}${
+    input.reportCode ? `-${input.reportCode}` : ""
+  }.pdf`;
   pdf.save(fileName);
 }

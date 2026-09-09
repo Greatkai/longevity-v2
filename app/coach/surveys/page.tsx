@@ -102,13 +102,14 @@ export default function CoachSurveysPage() {
 
   /** 下载该份问卷的结果明细 PDF */
   const downloadDetail = async () => {
-    if (!detail) return;
+    if (!detail || !detail.scores?.imbalances) return;
     setDownloading(true);
     try {
       const { exportSurveyPDF } = await import("@/lib/export/survey-export");
       await exportSurveyPDF({
         answers: detail.answers as never,
-        scores: detail.scores as never,
+        categories: summarizeCategories(detail.scores.imbalances),
+        problems: detail.scores.mainProblems ?? [],
         reportCode: detail.reportCode,
         name: detail.name,
         phone: detail.phone,

@@ -129,9 +129,15 @@ export default function QuestionnairePage() {
       { key: "setup", label: "配置", icon: Layers, kind: "setup" },
     ];
     const dims = DIMENSIONS.filter((d) => config.chliDimensions.includes(d.key));
-    if (dims.length > 0) {
+    // L 维度合并：运动/睡眠/饮食/烟酒主题均非「简单版」时，L 只剩体重管理等个别题目，
+    // 此时不再单独出现 L 步骤，剩余题目合并到功能医学对应章节
+    const lRemainingIds = getLRemainingIds(config);
+    const anyFmLifestyle = FM_TOPIC_ORDER.some((t) => isDetailed(config, t));
+    const mergeL = lRemainingIds.length > 0 && lRemainingIds.length <= 2 && anyFmLifestyle;
+    const effectiveDims = dims.filter((d) => !(d.key === "L" && mergeL));
+    if (effectiveDims.length > 0) {
       list.push({ key: "LAB", label: "检查", icon: FileSearch, kind: "lab" });
-      dims.forEach((d) =>
+      effectiveDims.forEach((d) =>
         list.push({ key: d.key, label: d.key, icon: d.icon, kind: "chli", dimKey: d.key })
       );
     }
@@ -167,6 +173,21 @@ export default function QuestionnairePage() {
   const progress = ((step + 1) / steps.length) * 100;
   const isLast = step >= steps.length - 1;
   const hasFm = hasFunctionalSurvey(config);
+
+  /* ---------- L 维度合并 ---------- */
+  const lRemainingIds = getLRemainingIds(config);
+  const mergeL =
+    config.chliDimensions.includes("L") &&
+    lRemainingIds.length > 0 &&
+    lRemainingIds.length <= 2 &&
+    FM_TOPIC_ORDER.some((t) => isDetailed(config, t));
+  // 合并目标章节：优先生活习惯（体重管理与行为相关），其次基本信息
+  const mergeTarget = mergeL
+    ? (["habits", "basic", ...FM_TOPIC_ORDER] as const).find((t) => isDetailed(config, t))!
+    : null;
+  const mergedLQuestions = mergeL
+    ? QUESTIONS.filter((q) => q.dimension === "L" && lRemainingIds.includes(q.id))
+    : [];
 
   /* ---------- 暂存（草稿） ---------- */
 
@@ -641,6 +662,13 @@ export default function QuestionnairePage() {
               sectionId={current.kind === "fm-stage1" ? "overall" : current.sectionId}
               answers={fmAnswers}
               onAnswer={setFmAnswer}
+              extraQuestions={
+                current.kind === "fm-section" && current.sectionId === mergeTarget
+                  ? mergedLQuestions
+                  : undefined
+              }
+              getValue={getValue}
+              setValue={setValue}
             />
           )}
 
@@ -849,6 +877,20 @@ function categoryToSection(cat: FMCategories): string {
   return map[cat];
 }
 
+/** 计算主题详查/跳过后，L 维度剩余需要单独提问的题目 id */
+function getLRemainingIds(config: {
+  topics: Record<string, string>;
+}): string[] {
+  const overridden = new Set<string>();
+  for (const topic of Object.keys(TOPIC_OVERRIDES)) {
+    if (config.topics[topic] === "simple") continue;
+    for (const qid of TOPIC_OVERRIDES[topic]["L"] ?? []) overridden.add(qid);
+  }
+  return QUESTIONS.filter((q) => q.dimension === "L" && !overridden.has(q.id)).map(
+    (q) => q.id
+  );
+}
+
 /** 过渡页加载中 */
 function TransitionLoader() {
   return (
@@ -932,19 +974,26 @@ function ChliDimCard({
   );
 }
 
-/** 功能医学问卷章节卡片 */
+/** 功能医学问卷章节卡片（可附加被合并的 CHLI 维度题目） */
 function FmSectionCard({
   sectionId,
   answers,
   onAnswer,
   categoryLabel,
   categoryIcon,
+  extraQuestions,
+  getValue,
+  setValue,
 }: {
   sectionId: string;
   answers: Record<string, unknown>;
   onAnswer: (qid: string, value: unknown) => void;
   categoryLabel?: string;
   categoryIcon?: string;
+  /** 合并进本章节的 CHLI 维度题目（如 L 维度的体重管理） */
+  extraQuestions?: typeof QUESTIONS;
+  getValue?: (path: string) => number | null;
+  setValue?: (path: string, value: number | null) => void;
 }) {
   const section = FM_SECTIONS.find((s) => s.id === sectionId);
   if (!section) return null;
@@ -965,7 +1014,8 @@ function FmSectionCard({
           </div>
           <p className="mt-1 text-sm text-ink-600">
             {categoryLabel ? section.title : section.subtitle}
-            {section.questions.length > 0 && ` · ${section.questions.length} 题`}
+            {(section.questions.length + (extraQuestions?.length ?? 0)) > 0 &&
+              ` · ${section.questions.length + (extraQuestions?.length ?? 0)} 题`}
           </p>
         </div>
       </div>
@@ -989,6 +1039,30 @@ function FmSectionCard({
             <FMQuestionField question={q} value={answers[q.qid]} onChange={(v) => onAnswer(q.qid, v)} />
           </div>
         ))}
+
+        {/* 合并的 CHLI 维度题目（如体重管理） */}
+        {extraQuestions && extraQuestions.length > 0 && (
+          <>
+            <div className="flex items-center gap-3 pt-2">
+              <span className="h-px flex-1 bg-brand-100" />
+              <span className="text-xs font-semibold text-ink-400">生活方式补充</span>
+              <span className="h-px flex-1 bg-brand-100" />
+            </div>
+            {extraQuestions.map((q) => (
+              <div key={q.id}>
+                <div className="mb-3">
+                  <label className="text-base font-semibold text-ink-900">{q.label}</label>
+                  {q.hint && <p className="mt-0.5 text-xs text-ink-400">{q.hint}</p>}
+                </div>
+                <QuestionField
+                  question={q}
+                  value={getValue?.(q.path) ?? null}
+                  onChange={(v) => setValue?.(q.path, v)}
+                />
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );

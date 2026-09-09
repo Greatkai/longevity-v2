@@ -10,13 +10,16 @@ import {
 } from "lucide-react";
 import { exportShareImage } from "@/lib/export/report-export";
 import type { AssessmentResult } from "@/lib/chli-model";
+import type { SurveyDetailInput } from "@/lib/export/survey-export";
 
 interface Props {
   /** 评估结果（用于生成分享图和 PDF） */
   result: AssessmentResult;
+  /** 解析功能医学问卷明细（用于 PDF 追加逐题答案附页），无详查时为空 */
+  onSurveyDetail?: (() => Promise<SurveyDetailInput | null>) | null;
 }
 
-export function ExportPanel({ result }: Props) {
+export function ExportPanel({ result, onSurveyDetail }: Props) {
   const [loading, setLoading] = useState<"share" | "pdf" | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -55,6 +58,20 @@ export function ExportPanel({ result }: Props) {
       const { jsPDF } = await import("jspdf");
       const { generateA4Pages } = await import("@/lib/export/report-export");
       const pages = await generateA4Pages(result, siteUrl, coachInterpretation);
+
+      // 完成功能医学问卷时，追加「附：问卷逐题答案明细」页
+      if (result.functional?.included && onSurveyDetail) {
+        try {
+          const detail = await onSurveyDetail();
+          if (detail) {
+            const { buildSurveyDetailPages } = await import("@/lib/export/survey-export");
+            pages.push(...buildSurveyDetailPages(detail));
+          }
+        } catch (e) {
+          console.error("问卷明细附页生成失败（不影响主报告）:", e);
+        }
+      }
+
       const pdf = new jsPDF("p", "pt", "a4");
       // A4 纸张实际尺寸 595×842pt，图片缩放适配纸张
       pages.forEach((dataUrl, i) => {
