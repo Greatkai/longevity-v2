@@ -8,7 +8,10 @@ interface ChatMessage {
   content: string;
 }
 
-async function callAI(messages: ChatMessage[]): Promise<string | null> {
+async function callAI(
+  messages: ChatMessage[],
+  maxTokens = 1200
+): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
   const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
@@ -25,7 +28,7 @@ async function callAI(messages: ChatMessage[]): Promise<string | null> {
         model,
         messages,
         temperature: 0.3,
-        max_tokens: 1200,
+        max_tokens: maxTokens,
       }),
     });
     if (!res.ok) return null;
@@ -54,6 +57,44 @@ export async function aiExtract(text: string): Promise<string | null> {
     { role: "system", content: system },
     { role: "user", content: text },
   ]);
+}
+
+/** 功能医学问卷题目目录条目（用于 AI 提取） */
+export interface FMCatalogItem {
+  qid: string;
+  text: string;
+  type: string;
+  options?: string[];
+}
+
+/**
+ * 请求 AI 从健康描述中提取功能医学问卷答案
+ * 返回 qid -> 答案 的 JSON 字符串（仅包含能确定的题目）
+ */
+export async function aiExtractFM(
+  text: string,
+  catalog: FMCatalogItem[]
+): Promise<string | null> {
+  const system = `你是一名功能医学问卷数据提取助手。下面给出问卷题目清单（JSON 数组，含 qid、text 题干、type 题型、options 选项）。
+请从用户的健康描述中提取**能确定**的题目答案，只返回一个 JSON 对象：{"qid": 答案, ...}，不要输出其他内容。
+答案规则：
+- radio：必须使用 options 中的**选项原文**
+- checkbox：返回选项原文数组（只含明确提到的项）
+- foodfreq：返回 {"freq": "每天|每周|每月|不吃", "count": 次数数字, "amount": "大碗|中碗|小碗|大份|中份|小份"}（count/amount 可省略）
+- diseasehist：返回 {"status": "有|无|不详", "detail": "年份或情况说明，可省略"}
+- number：返回数字；text/textarea：返回字符串
+- 描述中未提及或无法确定的题目**不要输出**；
+- 注意否定表述（如"没有糖尿病"不能回答"有"）。
+
+题目清单：
+${JSON.stringify(catalog)}`;
+  return await callAI(
+    [
+      { role: "system", content: system },
+      { role: "user", content: text },
+    ],
+    3000
+  );
 }
 
 /** 请求 AI 生成个性化解读与建议 */

@@ -44,7 +44,7 @@ function flattenData(data: ExtractedData): Record<string, number> {
 }
 
 export function AIFillPanel({ onFilled }: Props) {
-  const { setBulk } = useAssessment();
+  const { setBulk, setFmBulk } = useAssessment();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -70,11 +70,18 @@ export function AIFillPanel({ onFilled }: Props) {
       const flat = flattenData(data.data as ExtractedData);
       const count = Object.keys(flat).length;
       setBulk(flat);
+      // 功能医学问卷答案（详查版）
+      const fm = (data.fm ?? {}) as Record<string, unknown>;
+      const fmCount = Object.keys(fm).length;
+      if (fmCount > 0) setFmBulk(fm as never);
       setMessage({
         type: "success",
-        text: `已从您的描述中提取 ${count} 项健康数据并自动填充问卷`,
+        text:
+          fmCount > 0
+            ? `已自动填充长寿指数问卷 ${count} 项、功能医学问卷 ${fmCount} 项，未覆盖的题目可手动补充`
+            : `已从您的描述中提取 ${count} 项健康数据并自动填充问卷`,
       });
-      onFilled(count);
+      onFilled(count + fmCount);
     } catch {
       setMessage({ type: "error", text: "网络错误，请稍后重试" });
     } finally {

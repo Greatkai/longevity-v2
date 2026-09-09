@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { aiExtract } from "@/lib/ai/provider";
+import { aiExtract, aiExtractFM } from "@/lib/ai/provider";
 import { ruleBasedExtract, emptyExtracted, type ExtractedData } from "@/lib/ai/extractor";
+import {
+  ruleBasedFMExtract,
+  sanitizeFmAnswers,
+} from "@/lib/ai/fm-extractor";
+import { FM_ALL_QUESTIONS } from "@/lib/functional-survey/questions";
 
 export const runtime = "nodejs";
 
@@ -57,7 +62,30 @@ export async function POST(req: NextRequest) {
     }
 
     const merged = mergeResults(aiResult, ruleResult);
-    return NextResponse.json({ data: merged });
+
+    // 功能医学问卷提取：规则兜底 + AI（按题目清单）
+    const fmRule = ruleBasedFMExtract(text);
+    let fmMerged = fmRule;
+    try {
+      const catalog = FM_ALL_QUESTIONS.map((q) => ({
+        qid: q.qid,
+        text: q.text,
+        type: q.type,
+        options: q.options,
+      }));
+      const fmRaw = await aiExtractFM(text, catalog);
+      if (fmRaw) {
+        const fmAI = JSON.parse(fmRaw.replace(/```json|```/g, "").trim());
+        const sanitized = sanitizeFmAnswers(fmAI);
+        // AI 结果优先
+        fmMerged = { ...fmRule, ...sanitized };
+      }
+    } catch (e) {
+      console.error("FM AI 提取失败，使用规则结果:", e);
+    }
+    fmMerged = sanitizeFmAnswers(fmMerged);
+
+    return NextResponse.json({ data: merged, fm: fmMerged });
   } catch (e) {
     console.error("提取失败:", e);
     return NextResponse.json({ error: "提取失败" }, { status: 500 });

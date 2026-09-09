@@ -32,6 +32,8 @@ interface AssessmentContextType {
   setValue: (path: string, value: number | null) => void;
   setBulk: (updates: Record<string, number>) => void;
   setFmAnswer: (qid: string, value: unknown) => void;
+  /** 批量写入功能医学问卷答案（AI 智能填写用） */
+  setFmBulk: (answers: FMAnswers) => void;
   setConfig: (config: AssessmentConfig) => void;
   setFmStage1: (
     s: { stage1: Record<string, FMStage1Score>; selection: FMSelection } | null
@@ -108,6 +110,10 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setFmBulk = useCallback((answers: FMAnswers) => {
+    setFmAnswers((prev) => ({ ...prev, ...answers }));
+  }, []);
+
   const setConfig = useCallback((c: AssessmentConfig) => {
     setConfigState(c);
   }, []);
@@ -165,6 +171,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         setValue,
         setBulk,
         setFmAnswer,
+        setFmBulk,
         setConfig,
         setFmStage1,
         setFmSummary,

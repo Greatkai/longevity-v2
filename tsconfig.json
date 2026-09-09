@@ -40,7 +40,8 @@
     ".next-dev2/types/**/*.ts",
     ".next-v6/types/**/*.ts",
     ".next-v7/types/**/*.ts",
-    ".next-v8/types/**/*.ts"
+    ".next-v8/types/**/*.ts",
+    ".next-v9/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
