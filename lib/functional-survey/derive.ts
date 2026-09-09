@@ -151,6 +151,35 @@ export const FM_OVERRIDDEN_L_QUESTIONS: Record<string, string[]> = {
   sleep: ["sleepHours", "sleepQuality"],
 };
 
+/* ---------------- 既往史 → 慢病推导 ---------------- */
+
+/** 视为慢性病的既往史题目（与 CHLI chronicCount 对应，上限 6） */
+const CHRONIC_DIS_QIDS = [
+  "dis_hypertension",
+  "dis_diabetes",
+  "dis_lipid",
+  "dis_chd",
+  "dis_stroke",
+  "dis_hyperuricemia",
+];
+
+/**
+ * 从既往史详查答案推导慢性病数量（0-6）
+ * 返回 null 表示未作答既往史、无法推导
+ */
+export function deriveChronicCount(answers: FMAnswers): number | null {
+  let count = 0;
+  let anyAnswered = false;
+  for (const qid of CHRONIC_DIS_QIDS) {
+    const v = answers[qid];
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      anyAnswered = true;
+      if ((v as { status?: string }).status === "有") count += 1;
+    }
+  }
+  return anyAnswered ? Math.min(6, count) : null;
+}
+
 /* ---------------- 失衡负荷映射 ---------------- */
 
 /** 七大失衡类别综合率的平均值（0-100，越高失衡越重） */

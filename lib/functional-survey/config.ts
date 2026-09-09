@@ -268,6 +268,8 @@ export const TOPIC_OVERRIDES: Record<string, Record<string, string[]>> = {
   sleep: { L: ["sleepHours", "sleepQuality"] },
   diet: { L: ["diet"] },
   habits: { L: ["smoking", "alcohol"] },
+  // 既往史详查时，慢病数量由 19 项疾病史自动推导，无需再单独填写
+  disease: { M: ["chronicCount"] },
 };
 
 /** 失衡类别 -> Stage2 章节 id */

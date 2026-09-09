@@ -62,6 +62,7 @@ import {
 import {
   deriveBasicsFromFM,
   deriveLifestyleFromFM,
+  deriveChronicCount,
   computeFunctionalLoad,
   summarizeCategories,
 } from "@/lib/functional-survey/derive";
@@ -130,10 +131,14 @@ export default function QuestionnairePage() {
     ];
     const dims = DIMENSIONS.filter((d) => config.chliDimensions.includes(d.key));
     // L 维度合并：运动/睡眠/饮食/烟酒主题均非「简单版」时，L 只剩体重管理等个别题目，
-    // 此时不再单独出现 L 步骤，剩余题目合并到功能医学对应章节
+    // 此时不再单独出现 L 步骤，剩余题目合并到功能医学章节（或主题相近的 CHLI 维度）
     const lRemainingIds = getLRemainingIds(config);
-    const anyFmLifestyle = FM_TOPIC_ORDER.some((t) => isDetailed(config, t));
-    const mergeL = lRemainingIds.length > 0 && lRemainingIds.length <= 2 && anyFmLifestyle;
+    const mergeL =
+      lRemainingIds.length > 0 &&
+      lRemainingIds.length <= 2 &&
+      (FM_TOPIC_ORDER.some((t) => isDetailed(config, t)) ||
+        config.chliDimensions.includes("D") ||
+        config.chliDimensions.includes("P"));
     const effectiveDims = dims.filter((d) => !(d.key === "L" && mergeL));
     if (effectiveDims.length > 0) {
       list.push({ key: "LAB", label: "检查", icon: FileSearch, kind: "lab" });
@@ -179,15 +184,23 @@ export default function QuestionnairePage() {
   const mergeL =
     config.chliDimensions.includes("L") &&
     lRemainingIds.length > 0 &&
-    lRemainingIds.length <= 2 &&
-    FM_TOPIC_ORDER.some((t) => isDetailed(config, t));
-  // 合并目标章节：优先生活习惯（体重管理与行为相关），其次基本信息
-  const mergeTarget = mergeL
-    ? (["habits", "basic", ...FM_TOPIC_ORDER] as const).find((t) => isDetailed(config, t))!
-    : null;
-  const mergedLQuestions = mergeL
-    ? QUESTIONS.filter((q) => q.dimension === "L" && lRemainingIds.includes(q.id))
-    : [];
+    lRemainingIds.length <= 2;
+  // 优先合并到功能医学章节；无 FM 生活章节（全跳过）时合并到主题相近的 CHLI 维度（D 管理依从 / P）
+  const fmMergeTarget = mergeL
+    ? (["habits", "basic", ...FM_TOPIC_ORDER] as const).find((t) => isDetailed(config, t))
+    : undefined;
+  const chliMergeHost =
+    mergeL && !fmMergeTarget
+      ? config.chliDimensions.includes("D")
+        ? "D"
+        : config.chliDimensions.includes("P")
+        ? "P"
+        : null
+      : null;
+  const mergedLQuestions =
+    mergeL && (fmMergeTarget || chliMergeHost)
+      ? QUESTIONS.filter((q) => q.dimension === "L" && lRemainingIds.includes(q.id))
+      : [];
 
   /* ---------- 暂存（草稿） ---------- */
 
@@ -393,6 +406,12 @@ export default function QuestionnairePage() {
       if (derived.diet !== undefined) input.lifestyle.diet = derived.diet;
       if (derived.smoking !== undefined) input.lifestyle.smoking = derived.smoking;
       if (derived.alcohol !== undefined) input.lifestyle.alcohol = derived.alcohol;
+
+      // 既往史详查：慢病数量由 19 项疾病史自动推导
+      if (config.topics.disease === "detailed") {
+        const chronicCount = deriveChronicCount(fmAnswers);
+        if (chronicCount !== null) input.metabolic.chronicCount = chronicCount;
+      }
 
       // 2. 功能失衡负荷计入 L6
       let functional: FunctionalSummary | null = null;
@@ -654,6 +673,9 @@ export default function QuestionnairePage() {
               getValue={getValue}
               getLabValue={getLabValue}
               setValue={setValue}
+              extraQuestions={
+                current.dimKey === chliMergeHost ? mergedLQuestions : undefined
+              }
             />
           )}
 
@@ -663,7 +685,7 @@ export default function QuestionnairePage() {
               answers={fmAnswers}
               onAnswer={setFmAnswer}
               extraQuestions={
-                current.kind === "fm-section" && current.sectionId === mergeTarget
+                current.kind === "fm-section" && current.sectionId === fmMergeTarget
                   ? mergedLQuestions
                   : undefined
               }
@@ -901,19 +923,21 @@ function TransitionLoader() {
   );
 }
 
-/** CHLI 维度卡片（沿用原有视觉） */
+/** CHLI 维度卡片（沿用原有视觉，可附加被合并的 L 维度题目） */
 function ChliDimCard({
   dimKey,
   questions,
   getValue,
   getLabValue,
   setValue,
+  extraQuestions,
 }: {
   dimKey: string;
   questions: typeof QUESTIONS;
   getValue: (path: string) => number | null;
   getLabValue: (path: string) => { available: boolean; value: number | null };
   setValue: (path: string, value: number | null) => void;
+  extraQuestions?: typeof QUESTIONS;
 }) {
   const dim = DIMENSIONS.find((d) => d.key === dimKey)!;
   return (
@@ -966,10 +990,34 @@ function ChliDimCard({
                 value={getValue(q.path)}
                 onChange={(v) => setValue(q.path, v)}
               />
-            </div>
-          )
-        )}
-      </div>
+              </div>
+              )
+              )}
+
+              {/* 合并的 L 维度剩余题目（如体重管理） */}
+              {extraQuestions && extraQuestions.length > 0 && (
+              <>
+              <div className="flex items-center gap-3 pt-2">
+              <span className="h-px flex-1 bg-brand-100" />
+              <span className="text-xs font-semibold text-ink-400">生活方式补充</span>
+              <span className="h-px flex-1 bg-brand-100" />
+              </div>
+              {extraQuestions.map((q) => (
+              <div key={q.id}>
+                <div className="mb-3">
+                  <label className="text-base font-semibold text-ink-900">{q.label}</label>
+                  {q.hint && <p className="mt-0.5 text-xs text-ink-400">{q.hint}</p>}
+                </div>
+                <QuestionField
+                  question={q}
+                  value={getValue(q.path)}
+                  onChange={(v) => setValue(q.path, v)}
+                />
+              </div>
+              ))}
+              </>
+              )}
+              </div>
     </div>
   );
 }
