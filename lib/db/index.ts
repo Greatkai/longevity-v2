@@ -100,13 +100,20 @@ export async function updateLastLogin(userId: number): Promise<void> {
   await pool.query("UPDATE users SET last_login_at = now() WHERE id = $1", [userId]);
 }
 
-/** 初始化管理员账号（幂等） */
+/** 初始化管理员账号（幂等；环境变量密码变更时自动同步） */
 export async function ensureAdmin(): Promise<void> {
   const email = (process.env.ADMIN_EMAIL || "admin@chi.cn").toLowerCase();
   const password = process.env.ADMIN_PASSWORD || "admin123456";
   const existing = await findUserByEmail(email);
   if (!existing) {
     await createUser(email, password, "系统管理员", "admin");
+  } else if (existing.role === "admin" && !verifyPassword(existing, password)) {
+    // 环境变量中的管理员密码与数据库不一致（如创建后修改过环境变量），以环境变量为准同步
+    const passwordHash = bcrypt.hashSync(password, 10);
+    await pool.query("UPDATE users SET password_hash = $1 WHERE id = $2", [
+      passwordHash,
+      existing.id,
+    ]);
   }
 }
 
