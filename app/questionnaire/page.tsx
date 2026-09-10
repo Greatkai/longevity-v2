@@ -503,6 +503,7 @@ export default function QuestionnairePage() {
         const result = calculateCHLI(input, {
           enabledDimensions: config.chliDimensions,
         });
+        result.sourceData = input as unknown as Record<string, unknown>;
 
         // 4. 提交问卷（服务端评分 + 复测关联 + 落库）
         const res = await fetch("/api/functional-survey/submit", {
@@ -579,6 +580,7 @@ export default function QuestionnairePage() {
       const result = calculateCHLI(input, {
         enabledDimensions: config.chliDimensions,
       });
+      result.sourceData = input as unknown as Record<string, unknown>;
       setResult(result);
       void clearDraft();
       router.push("/report");

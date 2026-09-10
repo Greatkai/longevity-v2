@@ -179,8 +179,12 @@ export function scoreMetabolic(input: MetabolicInput): {
   // M5 肝肾与基础慢病
   const liver = labScore(input.liverKidney, () => 100, 70);
   const chronicScore = clampScore(100 - input.chronicCount * 20);
-  const controlScore = clampScore(linearMap(input.chronicControl, 0, 2, 40, 100));
-  const hasChronic = input.chronicCount > 0;
+  // chronicControl = -1 表示用户明确选择"无慢性病"，按满分计
+  const controlScore =
+    input.chronicControl === -1
+      ? 100
+      : clampScore(linearMap(input.chronicControl, 0, 2, 40, 100));
+  const hasChronic = input.chronicCount > 0 && input.chronicControl !== -1;
   const m5 = hasChronic
     ? clampScore(liver * 0.5 + controlScore * 0.5)
     : clampScore(liver * 0.7 + chronicScore * 0.3);

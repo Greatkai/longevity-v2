@@ -105,13 +105,23 @@ export function generateRuleInsights(r: AssessmentResult): string {
   tips.forEach((t, i) => lines.push(`${i + 1}. ${t}`));
   lines.push("");
 
-  // 建议完善检查（基于缺失的检验项）
-  const missingLabs = LAB_CHECKLIST.filter((item) => !hasLabProvided(sourceData, item.subKey));
+  // 建议完善检查（基于缺失的检验项，仅限参与评估的维度，推荐项优先）
+  const includedDims = new Set(r.dimensions.map((d) => d.key));
+  const missingLabs = LAB_CHECKLIST.filter(
+    (item) => includedDims.has(item.dimension) && !hasLabProvided(sourceData, item.subKey)
+  ).sort((a, b) => Number(b.recommended) - Number(a.recommended));
   if (missingLabs.length > 0) {
     lines.push(`## 建议完善检查`);
-    lines.push(`为让评估结果更精准，建议您补充以下检验/检查项目（可前往医院体检或门诊开具）：`);
-    missingLabs.forEach((item) => {
-      lines.push(`- **${item.name}**（${item.dimension} 维度）：${item.tests}`);
+    const shown = missingLabs.slice(0, 6);
+    lines.push(
+      `为让评估结果更精准，建议优先补充以下检验/检查项目（推荐项已排在前面${
+        missingLabs.length > shown.length ? `，其余 ${missingLabs.length - shown.length} 项可稍后补充` : ""
+      }）：`
+    );
+    shown.forEach((item) => {
+      lines.push(
+        `- **${item.name}**（${item.dimension} 维度${item.recommended ? " · 推荐" : ""}）：${item.tests}`
+      );
     });
     lines.push(`> 提示：补充检验数据后重新评估，可显著提高各项指数与风险评估的准确性。`);
     lines.push("");

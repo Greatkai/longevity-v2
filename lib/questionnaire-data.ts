@@ -196,7 +196,9 @@ export const QUESTIONS: Question[] = [
   {
     id: "chronicControl", dimension: "M", type: "radio",
     label: "慢性病控制情况如何？",
+    hint: "无慢性病请选择「无慢性病」",
     options: [
+      { value: -1, label: "无慢性病" },
       { value: 0, label: "控制较差" },
       { value: 1, label: "控制一般" },
       { value: 2, label: "控制良好" },

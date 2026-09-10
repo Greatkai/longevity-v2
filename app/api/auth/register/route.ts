@@ -46,16 +46,29 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (e) {
-    console.error("注册失败:", (e as Error).message || e);
-    const msg = (e as Error).message || "";
-    // 将数据库连接错误返回给前端，便于诊断
-    const detail = msg.includes("connect") || msg.includes("ECONNREFUSED")
-      ? "数据库连接失败，请检查配置"
-      : msg.includes("password") || msg.includes("authenticat")
-      ? "数据库密码错误"
-      : msg.includes("SSL") || msg.includes("ssl")
-      ? "数据库 SSL 配置错误"
-      : "注册失败，请稍后重试";
-    return NextResponse.json({ error: detail }, { status: 500 });
+    const err = e as Error & { code?: string; detail?: string };
+    console.error("注册失败:", err.message || err, err.code || "");
+    const msg = `${err.message || ""} ${err.detail || ""}`;
+    // 将数据库错误归类返回，并附带原始信息便于诊断
+    let detail: string;
+    if (err.code === "42P01" || msg.includes("does not exist")) {
+      detail = "数据库表尚未创建，请在 Supabase 执行 schema.sql 初始化脚本";
+    } else if (err.code === "23505" || msg.includes("duplicate key")) {
+      detail = "该邮箱已被注册";
+    } else if (msg.includes("connect") || msg.includes("ECONNREFUSED") || msg.includes("ETIMEDOUT")) {
+      detail = "数据库连接失败，请检查连接串配置";
+    } else if (msg.includes("password") || msg.includes("authenticat")) {
+      detail = "数据库密码错误，请检查 DATABASE_URL";
+    } else if (msg.includes("SSL") || msg.includes("ssl")) {
+      detail = "数据库 SSL 配置错误，请设置 DATABASE_SSL=true";
+    } else if (msg.includes("getaddrinfo") || msg.includes("ENOTFOUND")) {
+      detail = "数据库主机名无法解析，请检查连接串";
+    } else {
+      detail = "注册失败，请稍后重试";
+    }
+    return NextResponse.json(
+      { error: detail, hint: msg.trim().slice(0, 160) || undefined },
+      { status: 500 }
+    );
   }
 }

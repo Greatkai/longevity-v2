@@ -24,7 +24,7 @@ export const SUB_INDICATORS: SubIndicator[] = [
   { key: "M2", dimension: "M", name: "血脂与动脉粥样硬化", weight: 0.25, needsLab: true, desc: "LDL-C、ApoB、非 HDL-C", rule: "LDL-C(mmol/L)：2.5 得 100 分，4.5 得 0 分，3.4 约 60 分。未提供时用估算分（62 分）。" },
   { key: "M3", dimension: "M", name: "血压与心血管风险", weight: 0.2, needsLab: true, desc: "收缩压/舒张压、脉压差", rule: "收缩压 110-140 与舒张压 75-90 各自映射到 0-100 分，取平均；收缩压 110 得满分。" },
   { key: "M4", dimension: "M", name: "体成分", weight: 0.15, needsLab: false, desc: "BMI、腰围、体脂率", rule: "BMI 18.5-24 得 100 分；24-28 得 75 分；<18.5 或 28-32 得 50 分；>32 得 25 分。" },
-  { key: "M5", dimension: "M", name: "肝肾与基础慢病", weight: 0.15, needsLab: true, desc: "肝肾功能指标、慢病数量与控制", rule: "肝肾功能正常计满分；无慢病再加分，每增加 1 种慢病减 20 分；慢病控制良好额外加分。" },
+  { key: "M5", dimension: "M", name: "肝肾与基础慢病", weight: 0.15, needsLab: true, desc: "肝肾功能指标、慢病数量与控制", rule: "肝肾功能正常计满分；无慢病（或选择「无慢性病」）计 100 分，每增加 1 种慢病减 20 分；慢病控制良好额外加分。" },
 
   /* -------- L 生活方式 -------- */
   { key: "L1", dimension: "L", name: "运动水平", weight: 0.25, needsLab: false, desc: "规律运动频率与强度", rule: "每周中等强度运动 0-5 次线性映射；每周 5 次得满分。" },

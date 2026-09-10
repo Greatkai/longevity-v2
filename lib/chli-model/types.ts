@@ -239,6 +239,8 @@ export interface AssessmentResult {
   fshi: DimensionScore | null;
   /** 功能医学问卷结果（选择了功能医学问卷时存在） */
   functional?: FunctionalSummary | null;
+  /** 原始填写数据（用于个性化检验建议与工作台查看） */
+  sourceData?: Record<string, unknown>;
   /** 生成时间 */
   createdAt: string;
   /** 报告唯一编码（用于健康管理师检索） */
