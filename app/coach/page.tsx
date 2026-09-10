@@ -14,6 +14,7 @@ import {
   Stethoscope,
   Sparkles,
   ClipboardList,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth-store";
@@ -174,6 +175,46 @@ export default function CoachPage() {
 
   const levelColor = report ? LEVEL_COLORS[report.level] || "#3186D8" : "#3186D8";
 
+  /** 下载客户完整 PDF 报告（主报告 + 问卷填写明细附页），供线下解读参考 */
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const downloadCustomerPDF = async () => {
+    if (!report?.result) return;
+    setDownloadingPdf(true);
+    try {
+      // 获取客户功能医学问卷答案（健管师权限）
+      let fmAnswers = null;
+      let name = report.userName;
+      let phone: string | null = null;
+      try {
+        const res = await fetch(
+          `/api/functional-survey/by-report/${encodeURIComponent(report.reportCode)}`
+        );
+        if (res.ok) {
+          const json = await res.json();
+          fmAnswers = json.record?.answers ?? null;
+          name = json.record?.name || report.userName;
+          phone = json.record?.phone ?? null;
+        }
+      } catch {
+        // 无 FM 问卷数据时仅导出主报告 + CHLI 明细
+      }
+      const { generateFullReportPDF } = await import("@/lib/export/full-report");
+      await generateFullReportPDF({
+        result: report.result as unknown as import("@/lib/chli-model").AssessmentResult,
+        coachInterpretation: report.coachInterpretation || "",
+        fmAnswers,
+        name,
+        phone,
+        siteUrl: window.location.origin,
+        fileName: `长寿评估报告-${report.reportCode}`,
+      });
+    } catch (e) {
+      console.error("客户 PDF 报告生成失败:", e);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-brand-soft pt-16">
@@ -279,6 +320,23 @@ export default function CoachPage() {
                     <span>#{report.id}</span>
                   </div>
                 </div>
+
+                {/* 客户 PDF 报告下载 */}
+                <button
+                  onClick={downloadCustomerPDF}
+                  disabled={downloadingPdf}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-teal-300 bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-700 transition-all hover:border-teal-400 hover:bg-teal-100 disabled:opacity-50"
+                >
+                  {downloadingPdf ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {downloadingPdf ? "正在生成 PDF…" : "下载客户 PDF 报告"}
+                </button>
+                <p className="mt-1.5 text-center text-[11px] text-ink-400">
+                  含主报告与全部问卷填写明细，可对照撰写解读
+                </p>
 
                 {/* 生物年龄对比 */}
                 {report.result?.bioAge && report.result.bioAge.actualAge != null && (
