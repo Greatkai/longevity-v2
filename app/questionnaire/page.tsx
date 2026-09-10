@@ -181,6 +181,11 @@ export default function QuestionnairePage() {
     return list;
   }, [config, fmStage1]);
 
+  // 进入问卷页时回到顶部（避免移动端浏览器保留首页滚动位置）
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const current = steps[Math.min(step, steps.length - 1)];
   const progress = ((step + 1) / steps.length) * 100;
   const isLast = step >= steps.length - 1;
@@ -340,6 +345,20 @@ export default function QuestionnairePage() {
     const p = labAvailablePaths[subKey];
     if (!p) return;
     setValue(p, getValue(p) === 1 ? 0 : 1);
+  };
+
+  /* ---------- 检验清单一键全选 ---------- */
+  const visibleLabs = LAB_CHECKLIST.filter((item) =>
+    config.chliDimensions.includes(item.dimension)
+  );
+  const allLabsSelected =
+    visibleLabs.length > 0 && visibleLabs.every((item) => checkActive(item.subKey));
+  const toggleAllLabs = () => {
+    const target = !allLabsSelected;
+    visibleLabs.forEach((item) => {
+      const p = labAvailablePaths[item.subKey];
+      if (p) setValue(p, target ? 1 : 0);
+    });
   };
 
   /** 当前 CHLI 维度题目（主题为详查/跳过时，对应简单题目自动跳过） */
@@ -706,7 +725,7 @@ export default function QuestionnairePage() {
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-400 text-white shadow-lg">
                   <TestTube className="h-8 w-8" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
                       检验检查
@@ -717,12 +736,21 @@ export default function QuestionnairePage() {
                     选择您已有的检验/检查项目，有检验数据将获得更精确的评估；没有的项目我们将用科学估算替代。
                   </p>
                 </div>
+                <button
+                  onClick={toggleAllLabs}
+                  className={cn(
+                    "ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-xl border-2 px-3.5 py-2 text-xs font-semibold transition-all active:scale-95",
+                    allLabsSelected
+                      ? "border-brand-300 bg-brand-100 text-brand-700"
+                      : "border-brand-300 bg-white text-brand-700 hover:border-brand-400"
+                  )}
+                >
+                  {allLabsSelected ? "全部取消" : "一键全选"}
+                </button>
               </div>
 
               <div className="grid gap-3 p-6 sm:grid-cols-2 md:p-8">
-                {LAB_CHECKLIST.filter((item) =>
-                  QUESTIONS.some((q) => q.dimension === item.dimension && config.chliDimensions.includes(item.dimension))
-                ).map((item) => {
+                {visibleLabs.map((item) => {
                   const active = checkActive(item.subKey);
                   return (
                     <button

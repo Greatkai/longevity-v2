@@ -13,6 +13,7 @@ import {
   BrainCircuit,
   Activity,
   Sparkles,
+  GitCompareArrows,
 } from "lucide-react";
 import { useAssessment } from "@/store/assessment-store";
 import { useAuth } from "@/store/auth-store";
@@ -35,6 +36,9 @@ export default function ReportPage() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [downloadingSurvey, setDownloadingSurvey] = useState(false);
+  // 对比提示：当前报告 id 与既往报告 id
+  const [currentReportId, setCurrentReportId] = useState<number | null>(null);
+  const [comparePrompt, setComparePrompt] = useState<number | null>(null);
   // 是否有人工解读（有则隐藏 AI 解读）
   const [hasCoach, setHasCoach] = useState(false);
   // 记录是否已自动保存，避免重复保存
@@ -109,6 +113,21 @@ export default function ReportPage() {
             const updated = [...savedCodes, result.reportCode].slice(-100);
             localStorage.setItem("chi_saved_reports", JSON.stringify(updated));
             setSaveMsg("报告已自动保存到「我的报告」");
+            // 记录报告 id 序列，用于「与既往报告对比」提示
+            const savedId = saveData.report?.id as number | undefined;
+            if (savedId) {
+              setCurrentReportId(savedId);
+              try {
+                const listRaw = localStorage.getItem("chi_report_ids");
+                let list: number[] = listRaw ? JSON.parse(listRaw) : [];
+                if (!list.includes(savedId)) list = [...list, savedId].slice(-10);
+                localStorage.setItem("chi_report_ids", JSON.stringify(list));
+                const prev = [...list].reverse().find((x) => x !== savedId);
+                if (prev) setComparePrompt(prev);
+              } catch {
+                // 忽略
+              }
+            }
           } else {
             autoSavedRef.current = false;
             setSaveMsg(saveData.error || "自动保存失败，可手动保存");
@@ -279,6 +298,33 @@ export default function ReportPage() {
         {saveMsg && (
           <div className="mb-6 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {saveMsg}
+          </div>
+        )}
+
+        {/* 与既往报告对比提示 */}
+        {comparePrompt && currentReportId && comparePrompt !== currentReportId && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-200 bg-gradient-to-r from-teal-50 to-white px-4 py-3">
+            <span className="flex items-center gap-2 text-sm text-teal-800">
+              <GitCompareArrows className="h-4 w-4" />
+              检测到您有既往评估报告，可与本次报告对比指标趋势
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setComparePrompt(null)}
+                className="rounded-lg px-3 py-1.5 text-xs text-ink-400 transition-colors hover:text-ink-600"
+              >
+                忽略
+              </button>
+              <button
+                onClick={() =>
+                  router.push(`/report/compare?ids=${comparePrompt},${currentReportId}`)
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-teal-700"
+              >
+                <GitCompareArrows className="h-3.5 w-3.5" />
+                去对比
+              </button>
+            </div>
           </div>
         )}
 
