@@ -13,10 +13,13 @@ import {
   ShieldCheck,
   History,
   PenLine,
+  GitCompareArrows,
+  Check,
 } from "lucide-react";
 import { RISK_META } from "@/lib/chli-model";
 import { useAssessment } from "@/store/assessment-store";
 import type { AssessmentResult } from "@/lib/chli-model";
+import { cn } from "@/lib/utils";
 
 interface ReportItem {
   id: number;
@@ -40,6 +43,14 @@ export default function HistoryPage() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [draft, setDraft] = useState<DraftInfo | null>(null);
   const [discarding, setDiscarding] = useState(false);
+  // 报告对比多选
+  const [selected, setSelected] = useState<number[]>([]);
+
+  const toggleSelect = (id: number) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   const loadReports = async () => {
     setLoading(true);
@@ -140,6 +151,38 @@ export default function HistoryPage() {
               </p>
             </div>
           </div>
+
+          {/* 对比操作栏 */}
+          {!loading && reports.length >= 2 && (
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-white px-4 py-3">
+              <p className="text-xs text-ink-500">
+                勾选 2 份及以上报告，可查看相同指标的趋势变化与差异对比
+              </p>
+              <div className="flex items-center gap-2">
+                {selected.length > 0 && (
+                  <button
+                    onClick={() => setSelected([])}
+                    className="rounded-xl border border-brand-100 bg-white px-3 py-2 text-xs font-semibold text-ink-500 transition-all hover:bg-brand-50"
+                  >
+                    清除选择
+                  </button>
+                )}
+                <button
+                  onClick={() => router.push(`/report/compare?ids=${selected.join(",")}`)}
+                  disabled={selected.length < 2}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all",
+                    selected.length >= 2
+                      ? "bg-brand-600 text-white shadow-md hover:bg-brand-700 hover:shadow-lg"
+                      : "cursor-not-allowed bg-brand-50 text-ink-300"
+                  )}
+                >
+                  <GitCompareArrows className="h-4 w-4" />
+                  对比报告{selected.length >= 2 ? `（${selected.length}）` : ""}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 未完成的评估（暂存草稿） */}
           {!loading && draft && (
@@ -247,6 +290,18 @@ export default function HistoryPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleSelect(report.id)}
+                        title="选择参与对比"
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-xl border-2 transition-all",
+                          selected.includes(report.id)
+                            ? "border-brand-500 bg-brand-500 text-white"
+                            : "border-brand-200 bg-white text-transparent hover:border-brand-400"
+                        )}
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => viewReport(report.id)}
                         className="btn-secondary !px-4 !py-2 text-sm"
