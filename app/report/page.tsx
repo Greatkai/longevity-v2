@@ -156,6 +156,21 @@ export default function ReportPage() {
     }
   };
 
+  /** 组装 PDF 附页：CHLI 问卷填写明细（两版都有）+ 功能医学问卷明细（详查时） */
+  const buildAppendixPages = async (): Promise<string[]> => {
+    const pages: string[] = [];
+    const { buildCHLIAnswerPages } = await import("@/lib/export/chli-appendix");
+    const source = (result.sourceData ?? data) as unknown as Record<string, unknown>;
+    pages.push(...buildCHLIAnswerPages(source, result));
+
+    const detail = await resolveSurveyDetail();
+    if (detail) {
+      const { buildSurveyDetailPages } = await import("@/lib/export/survey-export");
+      pages.push(...buildSurveyDetailPages(detail));
+    }
+    return pages;
+  };
+
   /** 解析问卷明细数据：优先本地会话，否则按报告编码从服务端取 */
   const resolveSurveyDetail = async () => {
     let answers = fmAnswers;
@@ -553,7 +568,7 @@ export default function ReportPage() {
 
         {/* 导出区 */}
         <div id="export" className="mt-8">
-          <ExportPanel result={result} onSurveyDetail={resolveSurveyDetail} />
+          <ExportPanel result={result} onAppendix={buildAppendixPages} />
         </div>
       </div>
     </div>

@@ -10,16 +10,15 @@ import {
 } from "lucide-react";
 import { exportShareImage } from "@/lib/export/report-export";
 import type { AssessmentResult } from "@/lib/chli-model";
-import type { SurveyDetailInput } from "@/lib/export/survey-export";
 
 interface Props {
   /** 评估结果（用于生成分享图和 PDF） */
   result: AssessmentResult;
-  /** 解析功能医学问卷明细（用于 PDF 追加逐题答案附页），无详查时为空 */
-  onSurveyDetail?: (() => Promise<SurveyDetailInput | null>) | null;
+  /** 组装 PDF 附页（客户全部填写结果），无填写数据时返回空数组 */
+  onAppendix?: () => Promise<string[]>;
 }
 
-export function ExportPanel({ result, onSurveyDetail }: Props) {
+export function ExportPanel({ result, onAppendix }: Props) {
   const [loading, setLoading] = useState<"share" | "pdf" | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -59,20 +58,19 @@ export function ExportPanel({ result, onSurveyDetail }: Props) {
       const { generateA4Pages } = await import("@/lib/export/report-export");
       const pages = await generateA4Pages(result, siteUrl, coachInterpretation);
 
-      // 完成功能医学问卷时，追加「附：问卷逐题答案明细」页
+      // 追加「附：客户全部填写结果」页（快速版含 CHLI 问卷明细；专业版额外含功能医学问卷明细）
       let appendixNote = "";
-      if (onSurveyDetail) {
+      if (onAppendix) {
         try {
-          const detail = await onSurveyDetail();
-          if (detail) {
-            const { buildSurveyDetailPages } = await import("@/lib/export/survey-export");
-            pages.push(...buildSurveyDetailPages(detail));
+          const appendixPages = await onAppendix();
+          if (appendixPages.length > 0) {
+            pages.push(...appendixPages);
           } else {
-            appendixNote = "（本次评估未包含问卷明细，未添加附页）";
+            appendixNote = "（未找到问卷填写数据，未添加附页）";
           }
         } catch (e) {
-          appendixNote = "（问卷明细附页生成失败）";
-          console.error("问卷明细附页生成失败（不影响主报告）:", e);
+          appendixNote = "（附页生成失败）";
+          console.error("PDF 附页生成失败（不影响主报告）:", e);
         }
       }
 
