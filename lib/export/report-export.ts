@@ -759,8 +759,8 @@ export async function generateA4Pages(
       ["生成日期", dateStr],
       ["综合指数", `${score} / 100`],
       ["健康等级", result.label],
-      ["实际年龄", `${result.bioAge.actualAge} 岁`],
-      ["生物年龄", `${result.bioAge.biologicalAge} 岁`],
+      ["实际年龄", result.bioAge.actualAge != null ? `${result.bioAge.actualAge} 岁` : "未填写"],
+      ["生物年龄", result.bioAge.biologicalAge != null ? `${result.bioAge.biologicalAge} 岁` : "未填写"],
     ];
     infoRows.forEach((row, i) => {
       const ry = y + i * 32;
@@ -813,9 +813,9 @@ export async function generateA4Pages(
 
     const bioRows = [
       [{ text: "指标", x: MARGIN + 100, align: "center" as const }, { text: "数值", x: MARGIN + 280, align: "center" as const }, { text: "说明", x: MARGIN + 480, align: "center" as const }],
-      [{ text: "实际年龄", x: MARGIN + 100, align: "center" as const }, { text: `${result.bioAge.actualAge} 岁`, x: MARGIN + 280, align: "center" as const }, { text: "出生至今的实际年限", x: MARGIN + 480, align: "center" as const }],
-      [{ text: "生物年龄", x: MARGIN + 100, align: "center" as const }, { text: `${result.bioAge.biologicalAge} 岁`, x: MARGIN + 280, align: "center" as const }, { text: "基于生物标志物测算", x: MARGIN + 480, align: "center" as const }],
-      [{ text: "年龄差值", x: MARGIN + 100, align: "center" as const }, { text: `${result.bioAge.ageGap > 0 ? "+" : ""}${result.bioAge.ageGap} 岁`, x: MARGIN + 280, align: "center" as const }, { text: result.bioAge.ageGap < 0 ? "生物年龄更年轻" : result.bioAge.ageGap > 2 ? "衰老速度偏快" : "基本相当", x: MARGIN + 480, align: "center" as const }],
+      [{ text: "实际年龄", x: MARGIN + 100, align: "center" as const }, { text: result.bioAge.actualAge != null ? `${result.bioAge.actualAge} 岁` : "未填写", x: MARGIN + 280, align: "center" as const }, { text: "出生至今的实际年限", x: MARGIN + 480, align: "center" as const }],
+      [{ text: "生物年龄", x: MARGIN + 100, align: "center" as const }, { text: result.bioAge.biologicalAge != null ? `${result.bioAge.biologicalAge} 岁` : "未填写", x: MARGIN + 280, align: "center" as const }, { text: "基于生物标志物测算", x: MARGIN + 480, align: "center" as const }],
+      [{ text: "年龄差值", x: MARGIN + 100, align: "center" as const }, { text: result.bioAge.ageGap != null ? `${result.bioAge.ageGap > 0 ? "+" : ""}${result.bioAge.ageGap} 岁` : "—", x: MARGIN + 280, align: "center" as const }, { text: result.bioAge.ageGap == null ? "补充年龄后生成对比" : result.bioAge.ageGap < 0 ? "生物年龄更年轻" : result.bioAge.ageGap > 2 ? "衰老速度偏快" : "基本相当", x: MARGIN + 480, align: "center" as const }],
     ];
     const bioRowH = 34;
     bioRows.forEach((row, i) => {
@@ -824,7 +824,9 @@ export async function generateA4Pages(
     y += bioRows.length * bioRowH + 16;
 
     const gap = result.bioAge.ageGap;
-    const gapDesc = gap < -2
+    const gapDesc = gap == null
+      ? "本次评估未填写实际年龄，补充后可获得生物年龄对比与衰老速度分析。"
+      : gap < -2
       ? `您的生物年龄比实际年龄年轻 ${Math.abs(gap)} 岁，表明身体衰老速度较慢，细胞功能与身体机能处于同龄人优秀水平，这是长期健康生活方式的积极回报。`
       : gap > 2
       ? `您的生物年龄比实际年龄大 ${gap} 岁，提示身体衰老速度相对偏快，通常是生活方式、代谢状态或慢性压力长期累积的结果，但也意味着有较大的改善空间。`

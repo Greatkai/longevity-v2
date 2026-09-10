@@ -308,58 +308,61 @@ export const QUESTIONS: Question[] = [
   },
 ];
 
-/** 每个维度的默认初始值（含二级指标与检验数据） */
+/**
+ * 评估初始值：全部为空（无预填），未作答的题目在评分时使用中性估算分。
+ * gender 保留默认值 male（未在问卷中提问，可由功能医学基本信息详查覆盖）。
+ */
 export const DEFAULT_ASSESSMENT = {
   gender: "male" as const,
   bio: {
-    actualAge: 40,
+    actualAge: null as number | null,
     biologicalAge: null as number | null,
     epigeneticAge: { available: false, value: null as number | null },
     inflammation: { available: false, value: null as number | null },
-    immunity: 3,
+    immunity: null as number | null,
   },
   functional: {
-    adl: 3,
+    adl: null as number | null,
     gaitSpeed: { available: false, value: null as number | null },
     gripStrength: { available: false, value: null as number | null },
     balance: { available: false, value: null as number | null },
     cognitiveTest: { available: false, value: null as number | null },
   },
   metabolic: {
-    bmi: 23,
-    systolicBP: 120,
-    diastolicBP: 80,
+    bmi: null as number | null,
+    systolicBP: null as number | null,
+    diastolicBP: null as number | null,
     hba1c: { available: false, value: null as number | null },
     fastingGlucose: { available: false, value: null as number | null },
     ldl: { available: false, value: null as number | null },
     liverKidney: { available: false, value: null as number | null },
-    chronicCount: 0,
-    chronicControl: 1,
+    chronicCount: null as number | null,
+    chronicControl: null as number | null,
   },
   lifestyle: {
-    diet: 7,
-    sleepHours: 7,
-    sleepQuality: 3,
-    weeklyExercise: 3,
-    smoking: 0,
-    alcohol: 0,
-    weightManagement: 3,
-    stress: 3,
+    diet: null as number | null,
+    sleepHours: null as number | null,
+    sleepQuality: null as number | null,
+    weeklyExercise: null as number | null,
+    smoking: null as number | null,
+    alcohol: null as number | null,
+    weightManagement: null as number | null,
+    stress: null as number | null,
   },
   psychosocial: {
-    mood: 3,
-    cognitiveHealth: 3,
-    loneliness: 2,
-    purpose: 3,
-    socialActivity: 3,
+    mood: null as number | null,
+    cognitiveHealth: null as number | null,
+    loneliness: null as number | null,
+    purpose: null as number | null,
+    socialActivity: null as number | null,
   },
   digital: {
-    recordContinuity: 6,
-    wearable: 1,
+    recordContinuity: null as number | null,
+    wearable: null as number | null,
     improvingTrend: { available: false, value: null as number | null },
     aiRiskPrediction: null as number | null,
-    adherence: 3,
-    regularCheckup: 1,
+    adherence: null as number | null,
+    regularCheckup: null as number | null,
   },
 };
 

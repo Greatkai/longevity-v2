@@ -17,6 +17,7 @@ import {
 import { useAssessment } from "@/store/assessment-store";
 import { useAuth } from "@/store/auth-store";
 import { RISK_META } from "@/lib/chli-model";
+import type { AssessmentResult } from "@/lib/chli-model";
 import { ScoreDonut } from "@/components/report/ScoreDonut";
 import { DimensionRadar } from "@/components/report/DimensionRadar";
 import { DimensionBars } from "@/components/report/DimensionBars";
@@ -29,7 +30,7 @@ import { summarizeCategories as summarizeCategoriesLocal } from "@/lib/functiona
 
 export default function ReportPage() {
   const router = useRouter();
-  const { result, data, reset, fmAnswers } = useAssessment();
+  const { result, data, reset, setResult, fmAnswers } = useAssessment();
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -38,12 +39,45 @@ export default function ReportPage() {
   const [hasCoach, setHasCoach] = useState(false);
   // 记录是否已自动保存，避免重复保存
   const autoSavedRef = useRef(false);
+  // 本地恢复流程是否已完成
+  const [restored, setRestored] = useState(false);
+
+  // 生成/更新报告时持久化到本地（未登录用户刷新或返回后不丢失）
+  useEffect(() => {
+    if (!result) return;
+    try {
+      localStorage.setItem("chi_last_report", JSON.stringify(result));
+    } catch {
+      // 忽略存储异常
+    }
+  }, [result]);
+
+  // 首次进入：优先从本地恢复上次报告；确实没有才跳回问卷
+  useEffect(() => {
+    if (result) return;
+    try {
+      const raw = localStorage.getItem("chi_last_report");
+      if (raw) {
+        const parsed = JSON.parse(raw) as AssessmentResult;
+        if (parsed && typeof parsed.chliScore === "number") {
+          setResult(parsed);
+          setSaveMsg("已恢复您上次的评估报告（本地保存）");
+          setRestored(true);
+          return;
+        }
+      }
+    } catch {
+      // 忽略
+    }
+    setRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (!result) {
+    if (restored && !result) {
       router.replace("/questionnaire");
     }
-  }, [result, router]);
+  }, [restored, result, router]);
 
   // 登录用户：生成报告后默认自动保存（避免重复保存已存在的报告）
   useEffect(() => {
@@ -292,7 +326,7 @@ export default function ReportPage() {
                 <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white p-5 text-center shadow-soft">
                   <div className="text-xs font-medium text-ink-600">实际年龄</div>
                   <div className="mt-2 text-4xl font-bold text-ink-900">
-                    {result.bioAge.actualAge}
+                    {result.bioAge.actualAge ?? "—"}
                     <span className="text-base font-normal text-ink-400">岁</span>
                   </div>
                 </div>
@@ -308,7 +342,7 @@ export default function ReportPage() {
                     className="mt-2 text-4xl font-bold"
                     style={{ color: meta.color }}
                   >
-                    {result.bioAge.biologicalAge}
+                    {result.bioAge.biologicalAge ?? "—"}
                     <span className="text-base font-normal text-ink-400">岁</span>
                   </div>
                 </div>
@@ -319,13 +353,16 @@ export default function ReportPage() {
                   <span>
                     年龄差：{" "}
                     <strong className="text-brand-700">
-                      {result.bioAge.ageGap >= 0 ? "+" : ""}
-                      {result.bioAge.ageGap} 岁
+                      {result.bioAge.ageGap == null
+                        ? "—"
+                        : `${result.bioAge.ageGap >= 0 ? "+" : ""}${result.bioAge.ageGap} 岁`}
                     </strong>
                   </span>
                 </div>
                 <p className="mt-2 text-sm leading-relaxed text-ink-600">
-                  {result.bioAge.ageGap < 0
+                  {result.bioAge.ageGap == null
+                    ? "填写实际年龄后，这里将展示您的生物年龄对比与衰老速度分析。"
+                    : result.bioAge.ageGap < 0
                     ? `您的生物年龄比实际年龄年轻 ${Math.abs(result.bioAge.ageGap)} 岁，衰老速度较慢，健康寿命潜力良好。`
                     : result.bioAge.ageGap > 2
                     ? `您的生物年龄比实际年龄大 ${result.bioAge.ageGap} 岁，提示衰老速度偏快，建议加强健康干预。`

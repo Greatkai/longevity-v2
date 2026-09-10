@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   BarChart3,
 } from "lucide-react";
+import { LastReportLink } from "@/components/home/LastReportLink";
 
 const dimensions = [
   {
@@ -153,6 +154,9 @@ export default function HomePage() {
               >
                 了解评估体系
               </a>
+            </div>
+            <div className="mt-5">
+              <LastReportLink />
             </div>
           </div>
 

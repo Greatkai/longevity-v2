@@ -1,6 +1,6 @@
 import type { AssessmentResult } from "@/lib/chli-model";
 import { RISK_META } from "@/lib/chli-model";
-import { LAB_CHECKLIST } from "@/lib/chli-model/sub-indicators";
+import { LAB_CHECKLIST, SUB_BY_DIMENSION } from "@/lib/chli-model/sub-indicators";
 
 /** 检验项到 available 路径的映射 */
 const LAB_AVAILABLE_PATHS: Record<string, string> = {
@@ -46,7 +46,12 @@ export function generateRuleInsights(r: AssessmentResult): string {
   // 生物年龄
   const gap = r.bioAge.ageGap;
   lines.push(`## 生物年龄分析`);
-  if (gap < -2) {
+  if (gap == null || r.bioAge.actualAge == null) {
+    lines.push(
+      `本次评估未填写实际年龄，暂无法生成生物年龄对比分析。补充年龄信息后重新评估，即可查看您的衰老速度分析。`
+    );
+    lines.push("");
+  } else if (gap < -2) {
     lines.push(
       `您的生物年龄（**${r.bioAge.biologicalAge} 岁**）比实际年龄年轻 **${Math.abs(gap)} 岁**，说明您的细胞功能与身体机能处于同龄人中的优秀水平，衰老速度较慢。这是长期健康生活方式的积极回报，值得继续保持。`
     );
@@ -105,24 +110,86 @@ export function generateRuleInsights(r: AssessmentResult): string {
   tips.forEach((t, i) => lines.push(`${i + 1}. ${t}`));
   lines.push("");
 
-  // 建议完善检查（基于缺失的检验项，仅限参与评估的维度，推荐项优先）
+  // 建议完善检查（结合评估发现的问题：低分检验项 + 功能失衡干预建议 + 缺失检验项）
   const includedDims = new Set(r.dimensions.map((d) => d.key));
-  const missingLabs = LAB_CHECKLIST.filter(
-    (item) => includedDims.has(item.dimension) && !hasLabProvided(sourceData, item.subKey)
-  ).sort((a, b) => Number(b.recommended) - Number(a.recommended));
-  if (missingLabs.length > 0) {
-    lines.push(`## 建议完善检查`);
-    const shown = missingLabs.slice(0, 6);
-    lines.push(
-      `为让评估结果更精准，建议优先补充以下检验/检查项目（推荐项已排在前面${
-        missingLabs.length > shown.length ? `，其余 ${missingLabs.length - shown.length} 项可稍后补充` : ""
-      }）：`
-    );
-    shown.forEach((item) => {
-      lines.push(
-        `- **${item.name}**（${item.dimension} 维度${item.recommended ? " · 推荐" : ""}）：${item.tests}`
-      );
+  interface LabRec {
+    name: string;
+    note: string;
+    tests: string;
+    priority: number;
+  }
+  const recs: LabRec[] = [];
+  const seenTests = new Set<string>();
+  const pushRec = (rec: LabRec) => {
+    const key = rec.tests;
+    if (seenTests.has(key)) return;
+    seenTests.add(key);
+    recs.push(rec);
+  };
+
+  // 1. 得分偏低的检验类二级指标 → 对应检测项目
+  r.dimensions.forEach((d) => {
+    if (!includedDims.has(d.key)) return;
+    (SUB_BY_DIMENSION[d.key] ?? []).forEach((s) => {
+      if (!s.needsLab) return;
+      const score = d.details?.[s.key];
+      if (typeof score === "number" && score < 60 && !hasLabProvided(sourceData, s.key)) {
+        const item = LAB_CHECKLIST.find((x) => x.subKey === s.key);
+        if (item) {
+          pushRec({
+            name: item.name,
+            note: `${s.name}得分偏低（${Math.round(score)} 分）`,
+            tests: item.tests,
+            priority: 0,
+          });
+        }
+      }
     });
+  });
+
+  // 2. 功能医学失衡评估发现的问题 → 干预建议中的检测项目
+  if (r.functional?.included) {
+    r.functional.categories
+      .filter((c) => c.rate >= 30)
+      .forEach((c) => {
+        const iv = r.functional!.interventions.find((x) => x.cat === c.cat);
+        (iv?.tests ?? []).slice(0, 2).forEach((t) => {
+          pushRec({ name: `${c.icon} ${c.name}失衡相关`, note: "功能医学评估建议", tests: t, priority: 1 });
+        });
+      });
+  }
+
+  // 3. 其余未提供的检验项（推荐项优先）
+  LAB_CHECKLIST.filter(
+    (item) => includedDims.has(item.dimension) && !hasLabProvided(sourceData, item.subKey)
+  )
+    .sort((a, b) => Number(b.recommended) - Number(a.recommended))
+    .forEach((item) => {
+      pushRec({
+        name: item.name,
+        note: `${item.dimension} 维度${item.recommended ? " · 推荐补充" : ""}`,
+        tests: item.tests,
+        priority: 2,
+      });
+    });
+
+  if (recs.length > 0) {
+    lines.push(`## 建议完善检查`);
+    const problemRecs = recs.filter((x) => x.priority <= 1);
+    const others = recs.filter((x) => x.priority === 2);
+    if (problemRecs.length > 0) {
+      lines.push(`结合本次评估发现的问题，建议优先完善以下检验/检查：`);
+      problemRecs.slice(0, 6).forEach((rec) => {
+        lines.push(`- **${rec.name}**：${rec.tests}（${rec.note}）`);
+      });
+    }
+    if (others.length > 0) {
+      if (problemRecs.length > 0) lines.push(`\n此外，以下项目缺失也会影响评估精度：`);
+      else lines.push(`为让评估结果更精准，建议您补充以下检验/检查项目（可前往医院体检或门诊开具）：`);
+      others.slice(0, 4).forEach((rec) => {
+        lines.push(`- **${rec.name}**（${rec.note}）：${rec.tests}`);
+      });
+    }
     lines.push(`> 提示：补充检验数据后重新评估，可显著提高各项指数与风险评估的准确性。`);
     lines.push("");
   }

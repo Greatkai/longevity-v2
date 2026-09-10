@@ -56,25 +56,26 @@ export function scoreBioAge(input: BioAgeInput): {
   details: Record<string, number>;
   result: BioAgeResult;
 } {
-  const actualAge = input.actualAge;
-  let biologicalAge: number;
-  if (input.biologicalAge !== null && input.biologicalAge > 0) {
+  const actualAge = input.actualAge ?? null;
+  let biologicalAge: number | null = null;
+  if (input.biologicalAge !== null && input.biologicalAge !== undefined && input.biologicalAge > 0) {
     biologicalAge = input.biologicalAge;
   } else if (input.epigeneticAge?.available && input.epigeneticAge.value) {
     biologicalAge = input.epigeneticAge.value;
-  } else {
-    biologicalAge = actualAge;
   }
 
-  const ageGap = biologicalAge - actualAge;
-  // B1 生物年龄差值：年轻越多分越高
-  const b1 = clampScore(60 - ageGap * 2.5 + Math.max(0, 80 - actualAge) * 0.1);
+  const ageGap = actualAge !== null && biologicalAge !== null ? biologicalAge - actualAge : null;
+  // B1 生物年龄差值：年轻越多分越高；实际年龄未填时用中性估算分
+  const b1 =
+    actualAge === null || ageGap === null
+      ? 60
+      : clampScore(60 - ageGap * 2.5 + Math.max(0, 80 - actualAge) * 0.1);
 
   // B2 表观遗传/衰老时钟：有检测数据用差值，无则给中性分
   const b2 = labScore(
     input.epigeneticAge,
     (v) => {
-      const gap = v - actualAge;
+      const gap = actualAge !== null ? v - actualAge : 0;
       return clampScore(60 - gap * 2.5);
     },
     62
@@ -164,27 +165,33 @@ export function scoreMetabolic(input: MetabolicInput): {
   // M2 血脂：LDL-C <3.4 理想，ApoB 目标
   const m2 = labScore(input.ldl, (v) => linearMap(v, 4.5, 2.5, 0, 100), 62);
 
-  // M3 血压
-  const sysScore = clampScore(linearMap(input.systolicBP, 140, 110, 0, 100));
-  const diaScore = clampScore(linearMap(input.diastolicBP, 90, 75, 0, 100));
+  // M3 血压（未填用中性估算分）
+  const sysScore =
+    input.systolicBP != null ? clampScore(linearMap(input.systolicBP, 140, 110, 0, 100)) : 60;
+  const diaScore =
+    input.diastolicBP != null ? clampScore(linearMap(input.diastolicBP, 90, 75, 0, 100)) : 60;
   const m3 = clampScore(sysScore * 0.5 + diaScore * 0.5);
 
-  // M4 体成分 BMI
+  // M4 体成分 BMI（未填用中性估算分）
   let m4: number;
-  if (input.bmi >= 18.5 && input.bmi <= 24) m4 = 100;
+  if (input.bmi == null) m4 = 60;
+  else if (input.bmi >= 18.5 && input.bmi <= 24) m4 = 100;
   else if (input.bmi >= 24 && input.bmi <= 28) m4 = 75;
   else if (input.bmi < 18.5 || (input.bmi > 28 && input.bmi <= 32)) m4 = 50;
   else m4 = 25;
 
   // M5 肝肾与基础慢病
   const liver = labScore(input.liverKidney, () => 100, 70);
-  const chronicScore = clampScore(100 - input.chronicCount * 20);
+  const chronicScore =
+    input.chronicCount != null ? clampScore(100 - input.chronicCount * 20) : 60;
   // chronicControl = -1 表示用户明确选择"无慢性病"，按满分计
   const controlScore =
     input.chronicControl === -1
       ? 100
-      : clampScore(linearMap(input.chronicControl, 0, 2, 40, 100));
-  const hasChronic = input.chronicCount > 0 && input.chronicControl !== -1;
+      : input.chronicControl != null
+      ? clampScore(linearMap(input.chronicControl, 0, 2, 40, 100))
+      : 60;
+  const hasChronic = (input.chronicCount ?? 0) > 0 && input.chronicControl !== -1;
   const m5 = hasChronic
     ? clampScore(liver * 0.5 + controlScore * 0.5)
     : clampScore(liver * 0.7 + chronicScore * 0.3);
@@ -200,12 +207,16 @@ export function scoreLifestyle(input: LifestyleInput): {
   score: number;
   details: Record<string, number>;
 } {
-  // L1 运动水平：每周 0-7 次
-  const l1 = clampScore(linearMap(input.weeklyExercise, 0, 5, 0, 100));
+  // L1 运动水平：每周 0-7 次（未填用中性估算分）
+  const l1 =
+    input.weeklyExercise != null
+      ? clampScore(linearMap(input.weeklyExercise, 0, 5, 0, 100))
+      : 60;
 
   // L2 睡眠质量
   let sleepDurationScore: number;
-  if (input.sleepHours >= 7 && input.sleepHours <= 8) sleepDurationScore = 100;
+  if (input.sleepHours == null) sleepDurationScore = 60;
+  else if (input.sleepHours >= 7 && input.sleepHours <= 8) sleepDurationScore = 100;
   else if (input.sleepHours >= 6 && input.sleepHours <= 9) sleepDurationScore = 75;
   else if (input.sleepHours >= 5 && input.sleepHours <= 10) sleepDurationScore = 50;
   else sleepDurationScore = 25;
@@ -215,9 +226,25 @@ export function scoreLifestyle(input: LifestyleInput): {
   // L3 饮食质量
   const l3 = scale0to10(input.diet);
 
-  // L4 烟酒
-  const smokingScore = input.smoking === 0 ? 100 : input.smoking === 1 ? 85 : input.smoking === 2 ? 55 : 20;
-  const alcoholScore = input.alcohol === 0 ? 100 : input.alcohol === 1 ? 75 : 30;
+  // L4 烟酒（未填用中性估算分）
+  const smokingScore =
+    input.smoking == null
+      ? 60
+      : input.smoking === 0
+      ? 100
+      : input.smoking === 1
+      ? 85
+      : input.smoking === 2
+      ? 55
+      : 20;
+  const alcoholScore =
+    input.alcohol == null
+      ? 60
+      : input.alcohol === 0
+      ? 100
+      : input.alcohol === 1
+      ? 75
+      : 30;
   const l4 = clampScore(smokingScore * 0.5 + alcoholScore * 0.5);
 
   // L5 体重管理与依从性
@@ -267,8 +294,15 @@ export function scoreDigital(input: DigitalHealthInput): {
 } {
   // D1 健康数据完整性
   const d1 = scale0to10(input.recordContinuity);
-  // D2 设备数据质量
-  const d2 = input.wearable === 0 ? 25 : input.wearable === 1 ? 60 : 100;
+  // D2 设备数据质量（未填用中性估算分）
+  const d2 =
+    input.wearable == null
+      ? 25
+      : input.wearable === 0
+      ? 25
+      : input.wearable === 1
+      ? 60
+      : 100;
   // D3 指标改善趋势
   const d3 = labScore(input.improvingTrend, () => 100, 65);
   // D4 AI 风险预测

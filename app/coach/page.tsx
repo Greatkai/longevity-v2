@@ -281,7 +281,7 @@ export default function CoachPage() {
                 </div>
 
                 {/* 生物年龄对比 */}
-                {report.result?.bioAge && (
+                {report.result?.bioAge && report.result.bioAge.actualAge != null && (
                   <div className="mt-4">
                     <h3 className="mb-2 text-xs font-semibold text-ink-500">生物年龄对比</h3>
                     <div className="grid grid-cols-2 gap-2">

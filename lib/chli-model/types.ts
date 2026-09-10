@@ -22,7 +22,8 @@ export interface LabValue {
 
 /* B 生物年龄二级指标 */
 export interface BioAgeInput {
-  actualAge: number;
+  /** 实际年龄（未填为 null，评分用中性估算分） */
+  actualAge: number | null;
   /** B1 生物年龄差值（可自评/体检） */
   biologicalAge: number | null;
   /** B2 表观遗传年龄/衰老时钟（第3代，需检验） */
@@ -162,12 +163,12 @@ export interface DimensionScore {
   details: Record<string, number>;
 }
 
-/** 生物年龄结果 */
+/** 生物年龄结果（未填写实际年龄时各字段可为 null） */
 export interface BioAgeResult {
-  actualAge: number;
-  biologicalAge: number;
+  actualAge: number | null;
+  biologicalAge: number | null;
   /** 生物年龄 - 实际年龄（正值=衰老快，负值=衰老慢） */
-  ageGap: number;
+  ageGap: number | null;
 }
 
 /** 功能失衡类别摘要（用于报告展示） */

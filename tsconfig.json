@@ -44,7 +44,9 @@
     ".next-v9/types/**/*.ts",
     ".next-v10/types/**/*.ts",
     ".next-v11/types/**/*.ts",
-    ".next-v12/types/**/*.ts"
+    ".next-v12/types/**/*.ts",
+    ".next-v14/types/**/*.ts",
+    ".next-v15/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

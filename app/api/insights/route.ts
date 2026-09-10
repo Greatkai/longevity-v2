@@ -32,10 +32,14 @@ function buildProfile(r: AssessmentResult): string {
   const dims = r.dimensions
     .map((d) => `${d.name}(${d.key}): ${d.score.toFixed(1)}分/${d.weight * 100}%权重`)
     .join("；");
+  const age = (v: number | null, unit = "岁") => (v != null ? `${v} ${unit}` : "未填写");
   return [
     `综合长寿指数 CHLI：${r.chliScore.toFixed(1)} 分，等级：${r.label}`,
-    `生物年龄：${r.bioAge.biologicalAge} 岁，实际年龄：${r.bioAge.actualAge} 岁，年龄差：${r.bioAge.ageGap >= 0 ? "+" : ""}${r.bioAge.ageGap} 岁`,
+    `生物年龄：${age(r.bioAge.biologicalAge)}，实际年龄：${age(r.bioAge.actualAge)}，年龄差：${r.bioAge.ageGap != null ? `${r.bioAge.ageGap >= 0 ? "+" : ""}${r.bioAge.ageGap} 岁` : "未评估"}`,
     `各维度得分：${dims}`,
     `FSHI 功能与感觉健康指数：${r.fshi?.score.toFixed(1)} 分`,
+    r.functional?.included
+      ? `功能失衡负荷率：${r.functional.loadRate}%（失衡评估已参与）`
+      : "功能失衡评估：未参与",
   ].join("\n");
 }
