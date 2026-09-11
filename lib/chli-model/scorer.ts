@@ -294,15 +294,9 @@ export function scoreDigital(input: DigitalHealthInput): {
 } {
   // D1 健康数据完整性
   const d1 = scale0to10(input.recordContinuity);
-  // D2 设备数据质量（未填用中性估算分）
+  // D2 设备数据质量（未填用中性估算分；0=不使用，1=偶尔，2=经常）
   const d2 =
-    input.wearable == null
-      ? 25
-      : input.wearable === 0
-      ? 25
-      : input.wearable === 1
-      ? 60
-      : 100;
+    input.wearable == null ? 60 : input.wearable === 0 ? 25 : input.wearable === 1 ? 60 : 100;
   // D3 指标改善趋势
   const d3 = labScore(input.improvingTrend, () => 100, 65);
   // D4 AI 风险预测

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   ChevronDown,
   Calculator,
@@ -154,9 +154,8 @@ export function CalcDetails({ result }: Props) {
                             const weighted = subScore * sub.weight;
                             const expanded = expandedSub === sub.key;
                             return (
-                              <>
+                              <Fragment key={sub.key}>
                                 <tr
-                                  key={sub.key}
                                   className={cn(
                                     "border-b border-brand-50 last:border-0 cursor-pointer transition-colors hover:bg-brand-50/40",
                                     expanded && "bg-brand-50/60"
@@ -195,7 +194,7 @@ export function CalcDetails({ result }: Props) {
                                   </td>
                                 </tr>
                                 {expanded && (
-                                  <tr key={`${sub.key}-rule`} className="bg-brand-50/30">
+                                  <tr className="bg-brand-50/30">
                                     <td colSpan={5} className="px-4 py-3">
                                       <div className="flex items-start gap-2 text-xs leading-relaxed text-ink-600">
                                         <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
@@ -207,7 +206,7 @@ export function CalcDetails({ result }: Props) {
                                     </td>
                                   </tr>
                                 )}
-                              </>
+                              </Fragment>
                             );
                           })}
                           <tr className="bg-brand-50/50">

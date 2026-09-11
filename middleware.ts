@@ -21,8 +21,8 @@ async function verifyToken(token: string): Promise<SessionPayload | null> {
   }
 }
 
-/** 需要登录的路由（游客可评估，保存报告/看历史需登录） */
-const PROTECTED = ["/history"];
+/** 需要登录的路由（游客可评估，保存报告/看历史/报告对比需登录） */
+const PROTECTED = ["/history", "/report/compare"];
 /** 需要 admin 角色的路由 */
 const ADMIN_ONLY = ["/admin"];
 /** 需要 admin 或健康管理师角色的路由 */
@@ -72,6 +72,8 @@ export const config = {
   matcher: [
     "/history",
     "/history/:path*",
+    "/report/compare",
+    "/report/compare/:path*",
     "/admin",
     "/admin/:path*",
     "/coach",

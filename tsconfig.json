@@ -51,7 +51,9 @@
     ".next-v17/types/**/*.ts",
     ".next-v18/types/**/*.ts",
     ".next-v19/types/**/*.ts",
-    ".next-v20/types/**/*.ts"
+    ".next-v20/types/**/*.ts",
+    ".next-v21/types/**/*.ts",
+    ".next-v22/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

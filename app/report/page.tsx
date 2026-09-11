@@ -27,7 +27,22 @@ import { ExportPanel } from "@/components/report/ExportPanel";
 import { CalcDetails } from "@/components/report/CalcDetails";
 import { CoachInterpretation } from "@/components/report/CoachInterpretation";
 import { FunctionalImbalance } from "@/components/report/FunctionalImbalance";
+import { BackToTop } from "@/components/common/BackToTop";
 import { summarizeCategories as summarizeCategoriesLocal } from "@/lib/functional-survey/derive";
+
+/** 记录报告 id 序列（本地），返回上一份报告 id（用于对比提示） */
+function registerReportIdLocal(savedId: number | undefined): number | null {
+  if (!savedId) return null;
+  try {
+    const listRaw = localStorage.getItem("chi_report_ids");
+    let list: number[] = listRaw ? JSON.parse(listRaw) : [];
+    if (!list.includes(savedId)) list = [...list, savedId].slice(-10);
+    localStorage.setItem("chi_report_ids", JSON.stringify(list));
+    return [...list].reverse().find((x) => x !== savedId) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default function ReportPage() {
   const router = useRouter();
@@ -115,19 +130,9 @@ export default function ReportPage() {
             setSaveMsg("报告已自动保存到「我的报告」");
             // 记录报告 id 序列，用于「与既往报告对比」提示
             const savedId = saveData.report?.id as number | undefined;
-            if (savedId) {
-              setCurrentReportId(savedId);
-              try {
-                const listRaw = localStorage.getItem("chi_report_ids");
-                let list: number[] = listRaw ? JSON.parse(listRaw) : [];
-                if (!list.includes(savedId)) list = [...list, savedId].slice(-10);
-                localStorage.setItem("chi_report_ids", JSON.stringify(list));
-                const prev = [...list].reverse().find((x) => x !== savedId);
-                if (prev) setComparePrompt(prev);
-              } catch {
-                // 忽略
-              }
-            }
+            const prevId = registerReportIdLocal(savedId);
+            if (savedId) setCurrentReportId(savedId);
+            if (prevId) setComparePrompt(prevId);
           } else {
             autoSavedRef.current = false;
             setSaveMsg(saveData.error || "自动保存失败，可手动保存");
@@ -138,6 +143,8 @@ export default function ReportPage() {
         }
       })();
     }
+    // data 仅用于首次保存快照，autoSavedRef 已防重复，无需加入依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, user]);
 
   if (!result) {
@@ -178,9 +185,28 @@ export default function ReportPage() {
   /** 组装 PDF 附页：CHLI 问卷填写明细（两版都有）+ 功能医学问卷明细（详查时） */
   const buildAppendixPages = async (): Promise<string[]> => {
     const pages: string[] = [];
-    const { buildCHLIAnswerPages } = await import("@/lib/export/chli-appendix");
-    const source = (result.sourceData ?? data) as unknown as Record<string, unknown>;
-    pages.push(...buildCHLIAnswerPages(source, result));
+    const source = (result.sourceData ?? data) as Record<string, unknown>;
+
+    // 仅当存在实际作答内容时才生成 CHLI 附页，避免旧报告输出整页「未填写」
+    const sd = source as {
+      bio?: { actualAge?: unknown };
+      metabolic?: { bmi?: unknown; systolicBP?: unknown };
+      lifestyle?: { weeklyExercise?: unknown; diet?: unknown };
+      psychosocial?: { mood?: unknown };
+      digital?: { recordContinuity?: unknown };
+    };
+    const hasAnswers =
+      sd?.bio?.actualAge != null ||
+      sd?.metabolic?.bmi != null ||
+      sd?.metabolic?.systolicBP != null ||
+      sd?.lifestyle?.weeklyExercise != null ||
+      sd?.lifestyle?.diet != null ||
+      sd?.psychosocial?.mood != null ||
+      sd?.digital?.recordContinuity != null;
+    if (hasAnswers) {
+      const { buildCHLIAnswerPages } = await import("@/lib/export/chli-appendix");
+      pages.push(...buildCHLIAnswerPages(source, result));
+    }
 
     const detail = await resolveSurveyDetail();
     if (detail) {
@@ -245,6 +271,10 @@ export default function ReportPage() {
       const data = await res.json();
       if (res.ok) {
         setSaveMsg("报告已保存到「我的报告」");
+        const savedId = data.report?.id as number | undefined;
+        const prevId = registerReportIdLocal(savedId);
+        if (savedId) setCurrentReportId(savedId);
+        if (prevId) setComparePrompt(prevId);
       } else {
         setSaveMsg(data.error || "保存失败");
       }
@@ -617,6 +647,7 @@ export default function ReportPage() {
           <ExportPanel result={result} onAppendix={buildAppendixPages} />
         </div>
       </div>
+      <BackToTop />
     </div>
   );
 }

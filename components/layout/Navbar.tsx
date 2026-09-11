@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   Activity,
   Menu,
@@ -19,11 +20,35 @@ import { useAuth } from "@/store/auth-store";
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  // 路由变化时自动收起移动端菜单
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await logout();
     setOpen(false);
   };
+
+  /** 当前路由是否处于活跃状态 */
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
+
+  const navLinkClass = (href: string) =>
+    cn(
+      "relative rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+      isActive(href)
+        ? "bg-white/15 text-white shadow-inner"
+        : "text-white/85 hover:bg-white/10 hover:text-white"
+    );
+
+  const mobileLinkClass = (href: string) =>
+    cn(
+      "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",
+      isActive(href) ? "bg-white/15 text-white" : "text-white/85 hover:bg-white/10"
+    );
 
   const authLinks = user
     ? [
@@ -54,23 +79,17 @@ export function Navbar() {
 
         {/* 桌面导航 */}
         <nav className="hidden items-center gap-1 md:flex">
-          <Link
-            href="/"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <Link href="/" className={navLinkClass("/")}>
             首页
           </Link>
-          <Link
-            href="/questionnaire"
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white"
-          >
+          <Link href="/questionnaire" className={navLinkClass("/questionnaire")}>
             开始评估
           </Link>
           {authLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white"
+              className={cn(navLinkClass(link.href), "flex items-center gap-1.5")}
             >
               <link.icon className="h-4 w-4" />
               {link.label}
@@ -122,18 +141,14 @@ export function Navbar() {
         )}
       >
         <div className="container-page flex flex-col gap-1 py-3">
-          <Link
-            href="/"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
-          >
+          <Link href="/" onClick={() => setOpen(false)} className={mobileLinkClass("/")}>
             <LayoutDashboard className="h-4 w-4" />
             首页
           </Link>
           <Link
             href="/questionnaire"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
+            className={mobileLinkClass("/questionnaire")}
           >
             <Activity className="h-4 w-4" />
             开始评估
@@ -143,7 +158,7 @@ export function Navbar() {
               key={link.href}
               href={link.href}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-colors hover:bg-white/10"
+              className={mobileLinkClass(link.href)}
             >
               <link.icon className="h-4 w-4" />
               {link.label}

@@ -26,6 +26,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useAuth } from "@/store/auth-store";
+import { BackToTop } from "@/components/common/BackToTop";
 import type { AssessmentResult } from "@/lib/chli-model";
 import { RISK_META } from "@/lib/chli-model";
 import { SUB_BY_DIMENSION, LAB_CHECKLIST } from "@/lib/chli-model/sub-indicators";
@@ -560,6 +561,7 @@ function CompareContent() {
           提示：对比按时间正序进行，趋势以第 1 次与最新一次的差值判定（±2 分以内视为持平）。导出的对比报告可直接带去线下解读。
         </p>
       </div>
+      <BackToTop />
     </div>
   );
 }

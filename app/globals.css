@@ -9,6 +9,23 @@
 
 html {
   scroll-behavior: smooth;
+  /* 固定导航栏高度，锚点跳转不被遮挡 */
+  scroll-padding-top: 5rem;
+}
+
+/* 移动端点击高亮去除 + 更好的键盘焦点样式 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+:focus-visible {
+  outline: 2px solid #3186d8;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* 加载骨架屏 */
+.skeleton {
+  @apply animate-pulse rounded-xl bg-gradient-to-r from-brand-50 via-brand-100/70 to-brand-50;
 }
 
 body {

@@ -227,9 +227,22 @@ export default function HistoryPage() {
           )}
 
           {loading ? (
-            <div className="mt-12 flex flex-col items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
-              <p className="mt-3 text-sm text-ink-600">加载中...</p>
+            <div className="mt-8 space-y-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="card flex items-center justify-between gap-4 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="skeleton h-14 w-14 rounded-2xl" />
+                    <div className="space-y-2">
+                      <div className="skeleton h-4 w-44" />
+                      <div className="skeleton h-3 w-28" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="skeleton h-9 w-20 rounded-xl" />
+                    <div className="skeleton h-9 w-20 rounded-xl" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : reports.length === 0 ? (
             <div className="card card-accent mt-8 flex flex-col items-center justify-center p-16 text-center">
