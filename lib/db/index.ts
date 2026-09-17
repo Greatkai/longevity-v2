@@ -351,6 +351,99 @@ export async function getDimensionAverages(): Promise<
     .sort((a, b) => b.avg - a.avg);
 }
 
+/* ------------------------- 健康管理师：客户与报告 ------------------------- */
+
+export interface CoachClientRow {
+  id: number;
+  name: string;
+  email: string;
+  /** 报告数量 */
+  reportCount: number;
+  /** 最近一次评估时间 */
+  lastReportAt: string | null;
+  /** 最近一次评估得分 */
+  latestScore: number | null;
+  /** 最近一次评估等级 */
+  latestLevel: string | null;
+  /** 最近一次评估是否已有健康管理师解读 */
+  latestInterpreted: boolean;
+}
+
+export interface CoachReportRow {
+  id: number;
+  reportCode: string;
+  chliScore: number;
+  level: string;
+  createdAt: string;
+  userName: string;
+  userEmail: string;
+  hasInterpretation: boolean;
+}
+
+/**
+ * 健康管理师：全部客户清单（含未生成报告的用户）
+ * q 非空时按姓名 / 邮箱模糊匹配
+ */
+export async function listCoachClients(
+  q?: string,
+  limit = 300
+): Promise<CoachClientRow[]> {
+  const keyword = q && q.trim() ? `%${q.trim()}%` : null;
+  const { rows } = await pool.query(
+    `SELECT u.id,
+            u.name,
+            u.email,
+            COUNT(r.id)::int AS "reportCount",
+            MAX(r.created_at) AS "lastReportAt",
+            (SELECT r2.chli_score FROM reports r2
+              WHERE r2.user_id = u.id ORDER BY r2.created_at DESC LIMIT 1) AS "latestScore",
+            (SELECT r2.level FROM reports r2
+              WHERE r2.user_id = u.id ORDER BY r2.created_at DESC LIMIT 1) AS "latestLevel",
+            (SELECT COALESCE(r2.coach_interpretation, '') <> '' FROM reports r2
+              WHERE r2.user_id = u.id ORDER BY r2.created_at DESC LIMIT 1) AS "latestInterpreted"
+     FROM users u
+     LEFT JOIN reports r ON r.user_id = u.id
+     WHERE u.role = 'user'
+       AND ($1::text IS NULL OR u.name ILIKE $1 OR u.email ILIKE $1)
+     GROUP BY u.id
+     ORDER BY MAX(r.created_at) DESC NULLS LAST, u.created_at DESC
+     LIMIT $2`,
+    [keyword, limit]
+  );
+  return rows as CoachClientRow[];
+}
+
+/**
+ * 健康管理师：全部报告列表（按时间倒序）
+ * q 非空时按报告编码 / 客户姓名 / 邮箱模糊匹配
+ */
+export async function listCoachReports(
+  q?: string,
+  limit = 300
+): Promise<CoachReportRow[]> {
+  const keyword = q && q.trim() ? `%${q.trim()}%` : null;
+  const { rows } = await pool.query(
+    `SELECT r.id,
+            r.report_code AS "reportCode",
+            r.chli_score AS "chliScore",
+            r.level,
+            r.created_at AS "createdAt",
+            u.name AS "userName",
+            u.email AS "userEmail",
+            COALESCE(r.coach_interpretation, '') <> '' AS "hasInterpretation"
+     FROM reports r
+     JOIN users u ON u.id = r.user_id
+     WHERE ($1::text IS NULL
+            OR r.report_code ILIKE $1
+            OR u.name ILIKE $1
+            OR u.email ILIKE $1)
+     ORDER BY r.created_at DESC
+     LIMIT $2`,
+    [keyword, limit]
+  );
+  return rows as CoachReportRow[];
+}
+
 /** 最近报告列表（含用户邮箱/姓名） */
 export async function listRecentReports(limit = 10): Promise<
   {

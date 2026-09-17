@@ -9,6 +9,7 @@ import {
   Zap,
   SlidersHorizontal,
   Check,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIMENSIONS } from "@/lib/questionnaire-data";
@@ -247,6 +248,13 @@ export function IntroPanel({ loggedIn, config, selected, onSelect, onContinue }:
               <p className="mt-1 text-xs text-ink-500">{s.d}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            评估的<strong>最后一步是「基本信息」</strong>。如需到线下就诊（面诊、医生解读或健康管理师一对一服务），
+            请务必填写<strong>姓名、性别、年龄、身高体重与联系电话</strong>，便于为您建立健康档案。
+          </span>
         </div>
         <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-relaxed text-emerald-700">
           {loggedIn ? (

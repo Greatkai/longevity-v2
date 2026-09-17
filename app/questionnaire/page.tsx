@@ -26,6 +26,7 @@ import {
   Save,
   History,
   X,
+  Info,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ import {
 import {
   FM_TOPIC_ORDER,
   TOPIC_OVERRIDES,
+  BASIC_CHLI_QUESTION_IDS,
   isDetailed,
   hasFunctionalSurvey,
   DEFAULT_CONFIG,
@@ -88,7 +90,9 @@ type Step =
   | (StepBase & { kind: "fm-section"; sectionId: string })
   | (StepBase & { kind: "fm-stage1" })
   | (StepBase & { kind: "fm-transition" })
-  | (StepBase & { kind: "fm-stage2"; category: FMCategories });
+  | (StepBase & { kind: "fm-stage2"; category: FMCategories })
+  /** 最后一步：基本信息（线下就诊必填） */
+  | (StepBase & { kind: "basic"; detailed: boolean });
 
 const FM_SECTION_META: Record<string, { label: string; icon: LucideIcon }> = {
   basic: { label: "基本信息", icon: User },
@@ -178,6 +182,14 @@ export default function QuestionnairePage() {
         })
       );
     }
+    // 固定为最后一步：基本信息（线下就诊必填）
+    list.push({
+      key: "basic",
+      label: "基本信息",
+      icon: User,
+      kind: "basic",
+      detailed: config.topics.basic === "detailed",
+    });
     return list;
   }, [config, fmStage1]);
 
@@ -199,7 +211,7 @@ export default function QuestionnairePage() {
     lRemainingIds.length <= 2;
   // 优先合并到功能医学章节；无 FM 生活章节（全跳过）时合并到主题相近的 CHLI 维度（D 管理依从 / P）
   const fmMergeTarget = mergeL
-    ? (["habits", "basic", ...FM_TOPIC_ORDER] as const).find((t) => isDetailed(config, t))
+    ? [...FM_TOPIC_ORDER, "basic" as const].find((t) => isDetailed(config, t))
     : undefined;
   const chliMergeHost =
     mergeL && !fmMergeTarget
@@ -361,10 +373,13 @@ export default function QuestionnairePage() {
     });
   };
 
-  /** 当前 CHLI 维度题目（主题为详查/跳过时，对应简单题目自动跳过） */
+  /** 当前 CHLI 维度题目（主题为详查/跳过时，对应简单题目自动跳过；基本信息始终抽出） */
   const getDimQuestions = (dimKey: string) => {
     const overridden = new Set<string>();
+    // 基本信息（年龄/BMI）固定在最后一步，不再出现在 B/M 维度
+    for (const qid of TOPIC_OVERRIDES.basic[dimKey] ?? []) overridden.add(qid);
     for (const topic of Object.keys(TOPIC_OVERRIDES)) {
+      if (topic === "basic") continue;
       if (config.topics[topic as keyof typeof config.topics] === "simple") continue;
       for (const qid of TOPIC_OVERRIDES[topic][dimKey] ?? []) overridden.add(qid);
     }
@@ -406,6 +421,15 @@ export default function QuestionnairePage() {
         const missing = sec
           ? sec.questions.filter((q) => isFmValueEmpty(fmAnswers[q.qid])).length
           : 0;
+        if (missing > 0) result.push({ step: idx, label: s.label, missing });
+      } else if (s.kind === "basic") {
+        const missing = s.detailed
+          ? FM_SECTIONS.find((x) => x.id === "basic")?.questions.filter((q) =>
+              isFmValueEmpty(fmAnswers[q.qid])
+            ).length ?? 0
+          : QUESTIONS.filter(
+              (q) => BASIC_CHLI_QUESTION_IDS.includes(q.id) && getValue(q.path) === null
+            ).length;
         if (missing > 0) result.push({ step: idx, label: s.label, missing });
       } else if (s.kind === "fm-transition" && !fmStage1) {
         // Stage1 尚未评分：失衡评估流程未走完
@@ -840,6 +864,18 @@ export default function QuestionnairePage() {
               highlightMissing={showMissing}
               categoryLabel={FM_IMBALANCES[current.category].name}
               categoryIcon={FM_IMBALANCES[current.category].icon}
+            />
+          )}
+
+          {current.kind === "basic" && (
+            <BasicInfoCard
+              detailed={current.detailed}
+              answers={fmAnswers}
+              onAnswer={setFmAnswer}
+              getValue={getValue}
+              setValue={setValue}
+              highlightMissing={showMissing}
+              extraQuestions={fmMergeTarget === "basic" ? mergedLQuestions : undefined}
             />
           )}
 
@@ -1283,6 +1319,159 @@ function FmSectionCard({
                   question={q}
                   value={getValue?.(q.path) ?? null}
                   onChange={(v) => setValue?.(q.path, v)}
+                />
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 基本信息卡片（固定为评估最后一步；线下就诊必填提示） */
+function BasicInfoCard({
+  detailed,
+  answers,
+  onAnswer,
+  getValue,
+  setValue,
+  extraQuestions,
+  highlightMissing,
+}: {
+  detailed: boolean;
+  answers: Record<string, unknown>;
+  onAnswer: (qid: string, value: unknown) => void;
+  getValue: (path: string) => number | null;
+  setValue: (path: string, value: number | null) => void;
+  extraQuestions?: typeof QUESTIONS;
+  highlightMissing?: boolean;
+}) {
+  const section = FM_SECTIONS.find((s) => s.id === "basic");
+  const chliQuestions = QUESTIONS.filter((q) => BASIC_CHLI_QUESTION_IDS.includes(q.id));
+  const total = (detailed ? section?.questions.length ?? 0 : chliQuestions.length) +
+    (extraQuestions?.length ?? 0);
+
+  /** 线下就诊关键字段是否缺失（详查版看姓名/电话，简单版看年龄/BMI） */
+  const missingCore = detailed
+    ? [
+        ["姓名", "basic_name"],
+        ["联系电话", "basic_phone"],
+      ]
+        .filter(([, qid]) => isFmValueEmpty(answers[qid]))
+        .map(([label]) => label)
+    : chliQuestions
+        .filter((q) => getValue(q.path) === null)
+        .map((q) => (q.id === "actualAge" ? "实际年龄" : "BMI"));
+
+  return (
+    <div className="card card-accent animate-fade-up overflow-hidden">
+      {/* 头部 */}
+      <div className="flex items-center gap-4 border-b border-brand-100 bg-gradient-to-r from-amber-50/80 to-white p-6">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-400 text-2xl text-white shadow-lg">
+          👤
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
+              最后一步
+            </span>
+            <h2 className="text-xl font-bold text-ink-900">基本信息</h2>
+          </div>
+          <p className="mt-1 text-sm text-ink-600">
+            用于生成报告、识别复测记录 · {total} 题
+          </p>
+        </div>
+      </div>
+
+      {/* 线下就诊必填提示 */}
+      <div className="flex items-start gap-2 border-b border-amber-100 bg-amber-50/70 px-6 py-4">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+        <p className="text-sm leading-relaxed text-amber-800">
+          如需<strong>到线下就诊</strong>（面诊、医生解读或健康管理师一对一服务），
+          <strong>请务必完整填写本页基本信息</strong>
+          ：姓名、性别、年龄、身高体重、联系电话。缺少这些信息，线下接诊时无法为您建立健康档案。
+        </p>
+      </div>
+
+      {missingCore.length > 0 && (
+        <div className="border-b border-amber-100 bg-amber-100/60 px-6 py-2.5 text-xs font-semibold text-amber-800">
+          尚未填写：{missingCore.join("、")}
+        </div>
+      )}
+
+      <div className="space-y-8 p-6 md:p-8">
+        {detailed
+          ? section?.questions.map((q: FMQuestion, i: number) => (
+              <div
+                key={q.qid}
+                className={cn(
+                  "rounded-xl transition-all",
+                  highlightMissing &&
+                    isFmValueEmpty(answers[q.qid]) &&
+                    "-mx-4 rounded-xl bg-amber-50/70 p-4 ring-1 ring-amber-300"
+                )}
+              >
+                <div className="mb-3">
+                  <label className="flex items-start gap-2 text-base font-semibold text-ink-900">
+                    <span className="mt-0.5 shrink-0 text-xs font-bold text-brand-400">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {q.text}
+                    {q.optional && (
+                      <span className="mt-0.5 rounded bg-brand-50 px-1.5 py-0.5 text-[10px] font-normal text-ink-400">
+                        选填
+                      </span>
+                    )}
+                  </label>
+                </div>
+                <FMQuestionField
+                  question={q}
+                  value={answers[q.qid]}
+                  onChange={(v) => onAnswer(q.qid, v)}
+                />
+              </div>
+            ))
+          : chliQuestions.map((q) => (
+              <div
+                key={q.id}
+                className={cn(
+                  "rounded-xl transition-all",
+                  highlightMissing &&
+                    getValue(q.path) === null &&
+                    "-mx-4 rounded-xl bg-amber-50/70 p-4 ring-1 ring-amber-300"
+                )}
+              >
+                <div className="mb-3">
+                  <label className="text-base font-semibold text-ink-900">{q.label}</label>
+                  {q.hint && <p className="mt-0.5 text-xs text-ink-400">{q.hint}</p>}
+                </div>
+                <QuestionField
+                  question={q}
+                  value={getValue(q.path)}
+                  onChange={(v) => setValue(q.path, v)}
+                />
+              </div>
+            ))}
+
+        {/* 合并进来的生活方式剩余题目（如体重管理） */}
+        {extraQuestions && extraQuestions.length > 0 && (
+          <>
+            <div className="flex items-center gap-3 pt-2">
+              <span className="h-px flex-1 bg-brand-100" />
+              <span className="text-xs font-semibold text-ink-400">生活方式补充</span>
+              <span className="h-px flex-1 bg-brand-100" />
+            </div>
+            {extraQuestions.map((q) => (
+              <div key={q.id}>
+                <div className="mb-3">
+                  <label className="text-base font-semibold text-ink-900">{q.label}</label>
+                  {q.hint && <p className="mt-0.5 text-xs text-ink-400">{q.hint}</p>}
+                </div>
+                <QuestionField
+                  question={q}
+                  value={getValue(q.path)}
+                  onChange={(v) => setValue(q.path, v)}
                 />
               </div>
             ))}

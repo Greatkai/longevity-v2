@@ -15,6 +15,10 @@ import {
   Sparkles,
   ClipboardList,
   Download,
+  Users,
+  FileText,
+  ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth-store";
@@ -39,6 +43,30 @@ interface SearchResult {
     /** 客户原始填写数据 */
     sourceData?: Record<string, any>;
   } | null;
+}
+
+/** 客户清单行（含未生成报告的注册用户） */
+interface CoachClient {
+  id: number;
+  name: string;
+  email: string;
+  reportCount: number;
+  lastReportAt: string | null;
+  latestScore: number | null;
+  latestLevel: string | null;
+  latestInterpreted: boolean;
+}
+
+/** 报告总览行 */
+interface CoachReport {
+  id: number;
+  reportCode: string;
+  chliScore: number;
+  level: string;
+  createdAt: string;
+  userName: string;
+  userEmail: string;
+  hasInterpretation: boolean;
 }
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -71,6 +99,15 @@ export default function CoachPage() {
   const [aiInsight, setAiInsight] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // 客户与报告总览
+  const [clients, setClients] = useState<CoachClient[]>([]);
+  const [reports, setReports] = useState<CoachReport[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"reports" | "clients">("reports");
+  const [clientFilter, setClientFilter] = useState<{ email: string; name: string } | null>(null);
+  const [listCollapsed, setListCollapsed] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -80,11 +117,43 @@ export default function CoachPage() {
     }
   }, [authLoading, user, router]);
 
-  const handleSearch = useCallback(async () => {
-    if (!code.trim()) {
-      setError("请输入报告编码");
-      return;
+  /** 拉取客户与报告总览（q 为空表示全部） */
+  const fetchList = useCallback(async (query: string) => {
+    setLoadingList(true);
+    setListError(null);
+    try {
+      const res = await fetch(`/api/coach/reports?q=${encodeURIComponent(query)}`);
+      const json = await res.json();
+      if (!res.ok) {
+        setListError(json.error || "加载失败");
+        return null;
+      }
+      const data = {
+        clients: (json.clients ?? []) as CoachClient[],
+        reports: (json.reports ?? []) as CoachReport[],
+      };
+      setClients(data.clients);
+      setReports(data.reports);
+      setClientFilter(null);
+      setTab(data.reports.length > 0 ? "reports" : "clients");
+      return data;
+    } catch {
+      setListError("网络错误");
+      return null;
+    } finally {
+      setLoadingList(false);
     }
+  }, []);
+
+  // 进入工作台：加载全部客户与报告
+  useEffect(() => {
+    if (authLoading || !user) return;
+    if (user.role !== "health_coach" && user.role !== "admin") return;
+    void fetchList("");
+  }, [authLoading, user, fetchList]);
+
+  /** 打开某份报告（加载详情到解读编辑器） */
+  const openReport = useCallback(async (reportCode: string) => {
     setSearching(true);
     setError(null);
     setReport(null);
@@ -92,22 +161,41 @@ export default function CoachPage() {
       const res = await fetch("/api/coach/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.trim() }),
+        body: JSON.stringify({ code: reportCode }),
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json.error || "搜索失败");
+        setError(json.error || "打开报告失败");
         return;
       }
       setReport(json.report);
       setMarkdown(json.report.coachInterpretation || "");
       setPreview(false);
+      setCode(json.report.reportCode);
+      setListCollapsed(true);
+      setTimeout(
+        () => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        120
+      );
     } catch {
       setError("网络错误");
     } finally {
       setSearching(false);
     }
-  }, [code]);
+  }, []);
+
+  /** 搜索：支持客户姓名 / 邮箱 / 报告编码；唯一命中时直接打开报告 */
+  const handleSearch = useCallback(async () => {
+    const q = code.trim();
+    if (!q) {
+      setError("请输入客户姓名或报告编码");
+      return;
+    }
+    const data = await fetchList(q);
+    if (data && data.reports.length === 1) {
+      await openReport(data.reports[0].reportCode);
+    }
+  }, [code, fetchList, openReport]);
 
   /** 生成 AI 解读作为参考 */
   const generateAI = async () => {
@@ -175,6 +263,15 @@ export default function CoachPage() {
 
   const levelColor = report ? LEVEL_COLORS[report.level] || "#3186D8" : "#3186D8";
 
+  /** 按客户筛选报告 */
+  const shownReports = clientFilter
+    ? reports.filter((r) => r.userEmail === clientFilter.email)
+    : reports;
+  const filterByClient = (c: CoachClient) => {
+    setClientFilter({ email: c.email, name: c.name });
+    setTab("reports");
+  };
+
   /** 下载客户完整 PDF 报告（主报告 + 问卷填写明细附页），供线下解读参考 */
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const downloadCustomerPDF = async () => {
@@ -236,7 +333,7 @@ export default function CoachPage() {
             <div>
               <h1 className="text-2xl font-bold text-ink-900">健康管理师工作台</h1>
               <p className="text-sm text-ink-600">
-                通过报告编码检索客户报告，撰写个性化人工解读（支持 Markdown）
+                查看全部客户与报告，支持姓名 / 报告编码检索，撰写个性化人工解读（支持 Markdown）
               </p>
             </div>
           </div>
@@ -258,7 +355,7 @@ export default function CoachPage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="输入报告编码，如 CHLI-250805-XXXXXX"
+                placeholder="输入客户姓名或报告编码，如 张三 / CHLI-250805-XXXXXX"
                 className="input-base pl-12"
               />
             </div>
@@ -268,9 +365,12 @@ export default function CoachPage() {
               className="btn-primary shrink-0"
             >
               {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-              搜索报告
+              搜索
             </button>
           </div>
+          <p className="mt-2 text-xs text-ink-400">
+            支持客户姓名、邮箱或报告编码检索；仅有一个匹配结果时会直接打开报告。
+          </p>
           {error && (
             <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
               {error}
@@ -278,8 +378,283 @@ export default function CoachPage() {
           )}
         </div>
 
+        {/* 客户与报告总览 */}
+        {listCollapsed && report ? (
+          <button
+            onClick={() => setListCollapsed(false)}
+            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            返回客户与报告列表
+          </button>
+        ) : (
+          <div className="card mt-6 overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-100 bg-brand-50/50 px-5 py-3.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Users className="h-5 w-5 text-brand-600" />
+                <h2 className="font-bold text-ink-900">客户与报告总览</h2>
+                <span className="text-xs text-ink-400">
+                  {loadingList
+                    ? "加载中…"
+                    : clientFilter
+                    ? `${clientFilter.name} · ${shownReports.length} 份报告`
+                    : `${clients.length} 位客户 · ${reports.length} 份报告`}
+                </span>
+                {clientFilter && (
+                  <button
+                    onClick={() => setClientFilter(null)}
+                    className="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-700 transition-colors hover:bg-brand-200"
+                  >
+                    清除筛选
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-1 rounded-xl bg-brand-100/70 p-1">
+                <button
+                  onClick={() => setTab("reports")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95",
+                    tab === "reports" ? "bg-white text-brand-700 shadow-sm" : "text-ink-500 hover:text-ink-700"
+                  )}
+                >
+                  报告 {reports.length}
+                </button>
+                <button
+                  onClick={() => setTab("clients")}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all active:scale-95",
+                    tab === "clients" ? "bg-white text-brand-700 shadow-sm" : "text-ink-500 hover:text-ink-700"
+                  )}
+                >
+                  客户 {clients.length}
+                </button>
+              </div>
+            </div>
+
+            {loadingList ? (
+              <div className="flex items-center justify-center gap-3 p-14 text-ink-500">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                加载中…
+              </div>
+            ) : listError ? (
+              <div className="p-6 text-sm text-red-600">{listError}</div>
+            ) : tab === "reports" ? (
+              shownReports.length === 0 ? (
+                <div className="p-14 text-center text-sm text-ink-400">暂无报告</div>
+              ) : (
+                <>
+                  {/* 桌面表格 */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-brand-100 bg-brand-50/50 text-left text-xs text-ink-500">
+                          <th className="px-6 py-3 font-semibold">报告编码</th>
+                          <th className="px-4 py-3 font-semibold">客户</th>
+                          <th className="px-4 py-3 font-semibold">得分</th>
+                          <th className="px-4 py-3 font-semibold">生成时间</th>
+                          <th className="px-4 py-3 font-semibold">解读状态</th>
+                          <th className="px-4 py-3" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {shownReports.map((r) => (
+                          <tr
+                            key={r.id}
+                            className="cursor-pointer border-b border-brand-50 transition-colors hover:bg-brand-50/40"
+                            onClick={() => openReport(r.reportCode)}
+                          >
+                            <td className="px-6 py-3 font-mono text-xs font-semibold text-brand-700">
+                              {r.reportCode}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-semibold text-ink-900">{r.userName || "未命名"}</div>
+                              <div className="text-xs text-ink-400">{r.userEmail}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className="rounded-full px-2 py-0.5 text-xs font-bold text-white"
+                                style={{ backgroundColor: LEVEL_COLORS[r.level] || "#3186D8" }}
+                              >
+                                {Math.round(r.chliScore)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-ink-500">
+                              {new Date(r.createdAt).toLocaleString("zh-CN")}
+                            </td>
+                            <td className="px-4 py-3">
+                              {r.hasInterpretation ? (
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                  已解读
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                                  待解读
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600">
+                                打开
+                                <ChevronRight className="h-4 w-4" />
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 手机卡片 */}
+                  <div className="divide-y divide-brand-50 md:hidden">
+                    {shownReports.map((r) => (
+                      <button
+                        key={r.id}
+                        onClick={() => openReport(r.reportCode)}
+                        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors active:bg-brand-50/50"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-bold text-ink-900">
+                              {r.userName || "未命名"}
+                            </span>
+                            <span
+                              className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white"
+                              style={{ backgroundColor: LEVEL_COLORS[r.level] || "#3186D8" }}
+                            >
+                              {Math.round(r.chliScore)} 分
+                            </span>
+                            {r.hasInterpretation ? (
+                              <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                                已解读
+                              </span>
+                            ) : (
+                              <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                                待解读
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 truncate font-mono text-[11px] text-brand-600">
+                            {r.reportCode}
+                          </div>
+                          <div className="mt-0.5 text-xs text-ink-400">
+                            {new Date(r.createdAt).toLocaleDateString("zh-CN")}
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-ink-300" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )
+            ) : clients.length === 0 ? (
+              <div className="p-14 text-center text-sm text-ink-400">暂无客户</div>
+            ) : (
+              <>
+                {/* 桌面表格 */}
+                <div className="hidden md:block">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-brand-100 bg-brand-50/50 text-left text-xs text-ink-500">
+                        <th className="px-6 py-3 font-semibold">客户</th>
+                        <th className="px-4 py-3 font-semibold">邮箱</th>
+                        <th className="px-4 py-3 font-semibold">报告数</th>
+                        <th className="px-4 py-3 font-semibold">最近评估</th>
+                        <th className="px-4 py-3 font-semibold">最近得分</th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clients.map((c) => (
+                        <tr key={c.id} className="border-b border-brand-50 transition-colors hover:bg-brand-50/40">
+                          <td className="px-6 py-3 font-semibold text-ink-900">{c.name || "未命名"}</td>
+                          <td className="px-4 py-3 text-xs text-ink-500">{c.email}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-xs font-bold",
+                                c.reportCount > 0 ? "bg-brand-100 text-brand-700" : "bg-brand-50 text-ink-600"
+                              )}
+                            >
+                              {c.reportCount}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-ink-500">
+                            {c.lastReportAt ? new Date(c.lastReportAt).toLocaleString("zh-CN") : "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {c.latestScore != null ? (
+                              <span
+                                className="rounded-full px-2 py-0.5 text-xs font-bold text-white"
+                                style={{ backgroundColor: LEVEL_COLORS[c.latestLevel || ""] || "#3186D8" }}
+                              >
+                                {Math.round(c.latestScore)}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-ink-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {c.reportCount > 0 ? (
+                              <button
+                                onClick={() => filterByClient(c)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-white px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-50"
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                                查看报告
+                              </button>
+                            ) : (
+                              <span className="text-xs text-ink-300">未生成报告</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 手机卡片 */}
+                <div className="divide-y divide-brand-50 md:hidden">
+                  {clients.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => c.reportCount > 0 && filterByClient(c)}
+                      className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors active:bg-brand-50/50"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-bold text-ink-900">
+                            {c.name || "未命名"}
+                          </span>
+                          {c.reportCount > 0 ? (
+                            <span className="shrink-0 rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-brand-700">
+                              {c.reportCount} 份报告
+                            </span>
+                          ) : (
+                            <span className="shrink-0 rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] font-bold text-ink-600">
+                              未生成报告
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 truncate text-xs text-ink-400">{c.email}</div>
+                        <div className="mt-0.5 text-xs text-ink-400">
+                          {c.lastReportAt
+                            ? `最近评估 ${new Date(c.lastReportAt).toLocaleDateString("zh-CN")}${
+                                c.latestScore != null ? ` · ${Math.round(c.latestScore)} 分` : ""
+                              }`
+                            : "尚无评估记录"}
+                        </div>
+                      </div>
+                      {c.reportCount > 0 && <ChevronRight className="h-4 w-4 shrink-0 text-ink-300" />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {report && (
-          <div className="mt-8 grid gap-8 lg:grid-cols-5">
+          <div ref={editorRef} className="mt-8 grid gap-8 lg:grid-cols-5">
             {/* 左：客户报告概览 */}
             <div className="lg:col-span-2">
               <div className="card p-6">

@@ -118,24 +118,6 @@ function simpleStats(ids: string[]) {
 
 export const TOPIC_META: TopicMeta[] = [
   {
-    id: "basic",
-    title: "基本信息",
-    icon: "👤",
-    description: "性别、年龄、身高体重与联系方式，用于生成报告并识别复测记录。",
-    simple: {
-      desc: "在 B/M 维度中直接填写年龄与 BMI",
-      ...simpleStats(["actualAge", "bmi"]),
-      requiresDims: ["B", "M"],
-    },
-    detailed: {
-      desc: "完整基本信息（姓名/性别/年龄/身高体重/电话/劳动强度），自动带入 CHLI，无需重复填写",
-      questionCount: `${FM_SECTION_SIZES["basic"]} 题`,
-      minutes: FM_SECTION_MINUTES["basic"],
-    },
-    skippable: false,
-    sectionId: "basic",
-  },
-  {
     id: "exercise",
     title: "运动情况",
     icon: "🏃",
@@ -245,11 +227,32 @@ export const TOPIC_META: TopicMeta[] = [
     },
     skippable: true,
   },
+  {
+    id: "basic",
+    title: "基本信息",
+    icon: "👤",
+    description:
+      "性别、年龄、身高体重与联系方式，用于生成报告并识别复测记录。固定为评估的最后一步；如需到线下就诊请务必完整填写。",
+    simple: {
+      desc: "只答两题：实际年龄 + BMI（原本分散在 B/M 维度，现统一放在最后一步）",
+      ...simpleStats(["actualAge", "bmi"]),
+      requiresDims: ["B", "M"],
+    },
+    detailed: {
+      desc: "完整基本信息（姓名/性别/年龄/身高体重/电话/劳动强度），自动带入 CHLI，无需重复填写",
+      questionCount: `${FM_SECTION_SIZES["basic"]} 题`,
+      minutes: FM_SECTION_MINUTES["basic"],
+    },
+    skippable: false,
+    sectionId: "basic",
+  },
 ];
 
-/** 详查主题的出题顺序 */
+/** 基本信息「简单版」对应的 CHLI 题目（从 B/M 维度抽出，统一放在最后一步） */
+export const BASIC_CHLI_QUESTION_IDS = ["actualAge", "bmi"];
+
+/** 详查主题的出题顺序（基本信息固定为最后一步，不在此列） */
 export const FM_TOPIC_ORDER: FMTopicId[] = [
-  "basic",
   "habits",
   "diet",
   "exercise",
@@ -261,6 +264,7 @@ export const FM_TOPIC_ORDER: FMTopicId[] = [
 /**
  * 主题详查时需要跳过的 CHLI 题目（避免重复作答）
  * key: 主题 id；value: { 维度: [题目 id] }
+ * 注：basic 无论简单版还是详查版，都会从 B/M 维度抽出并作为独立的最后一步。
  */
 export const TOPIC_OVERRIDES: Record<string, Record<string, string[]>> = {
   basic: { B: ["actualAge"], M: ["bmi"] },
@@ -292,13 +296,14 @@ export function estimateAssessment(config: AssessmentConfig): {
   const selectedDims = new Set(config.chliDimensions);
   let questions = 0;
 
-  // CHLI 题目（扣除被详查主题覆盖的题目）
+  // CHLI 题目（扣除被详查主题覆盖的题目；基本信息始终独立成步）
   for (const dim of config.chliDimensions) {
     for (const q of QUESTIONS) {
       if (q.dimension !== dim) continue;
       let overridden = false;
       for (const topic of Object.keys(TOPIC_OVERRIDES)) {
-        if (config.topics[topic as TopicId] === "simple") continue;
+        // basic 无论简单版还是详查版都从 CHLI 维度中抽出
+        if (topic !== "basic" && config.topics[topic as TopicId] === "simple") continue;
         const ids = TOPIC_OVERRIDES[topic][dim] ?? [];
         if (ids.includes(q.id)) overridden = true;
       }
@@ -309,6 +314,7 @@ export function estimateAssessment(config: AssessmentConfig): {
   // 详查主题的问卷题目
   for (const topic of TOPIC_META) {
     if (!isDetailed(config, topic.id)) continue;
+    if (topic.id === "basic") continue; // 基本信息单独统计
     if (topic.id === "imbalance") {
       questions += 23 + 45; // 总体 + 专项按 3 类估算
     } else {
@@ -316,9 +322,15 @@ export function estimateAssessment(config: AssessmentConfig): {
     }
   }
 
+  // 最后一步：基本信息（简单版 2 题 / 详查版整章）
+  questions +=
+    config.topics.basic === "detailed"
+      ? FM_SECTION_SIZES["basic"] ?? 0
+      : BASIC_CHLI_QUESTION_IDS.length;
+
   const minutes = Math.max(1, Math.round(questions * 0.22));
-  const moduleCount =
-    config.chliDimensions.length +
-    TOPIC_META.filter((t) => isDetailed(config, t.id)).length;
+  let moduleCount = config.chliDimensions.length;
+  if (config.topics.basic === "simple") moduleCount += 1; // 基本信息独立一步
+  moduleCount += TOPIC_META.filter((t) => isDetailed(config, t.id)).length;
   return { minutes, questions, moduleCount };
 }

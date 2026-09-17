@@ -246,9 +246,18 @@ export function SetupPanel({ config, onChange, onStart }: Props) {
           })}
         </div>
 
-        <div className="mx-5 mb-5 flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs text-brand-700">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          简单版题目在对应维度的问卷中出现；详查版为主题专项问卷，完成功能失衡评估后将获得个性化干预建议（饮食/营养/生活方式/检测）。
+        <div className="mx-5 mb-5 space-y-2">
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              「基本信息」固定为评估的<strong>最后一步</strong>（不可跳过）。如需
+              <strong>到线下就诊</strong>，请务必完整填写姓名、性别、年龄、身高体重与联系电话。
+            </span>
+          </div>
+          <div className="flex items-start gap-2 rounded-xl bg-brand-50 px-4 py-3 text-xs leading-relaxed text-brand-700">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            简单版题目在对应维度的问卷中出现；详查版为主题专项问卷，完成功能失衡评估后将获得个性化干预建议（饮食/营养/生活方式/检测）。
+          </div>
         </div>
       </div>
 
