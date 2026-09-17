@@ -19,6 +19,7 @@ import {
   FileText,
   ChevronRight,
   ArrowLeft,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth-store";
@@ -107,6 +108,8 @@ export default function CoachPage() {
   const [tab, setTab] = useState<"reports" | "clients">("reports");
   const [clientFilter, setClientFilter] = useState<{ email: string; name: string } | null>(null);
   const [listCollapsed, setListCollapsed] = useState(false);
+  /** 当前列表实际生效的检索词（空 = 显示全部） */
+  const [appliedQuery, setAppliedQuery] = useState("");
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -135,6 +138,7 @@ export default function CoachPage() {
       setClients(data.clients);
       setReports(data.reports);
       setClientFilter(null);
+      setAppliedQuery(query.trim());
       setTab(data.reports.length > 0 ? "reports" : "clients");
       return data;
     } catch {
@@ -196,6 +200,26 @@ export default function CoachPage() {
       await openReport(data.reports[0].reportCode);
     }
   }, [code, fetchList, openReport]);
+
+  /** 回到全部客户与报告（清除检索词与客户筛选） */
+  const resetToAll = useCallback(() => {
+    setCode("");
+    setError(null);
+    setClientFilter(null);
+    void fetchList("");
+  }, [fetchList]);
+
+  /** 关闭当前报告并返回列表 */
+  const closeReport = useCallback(() => {
+    setListCollapsed(false);
+    setReport(null);
+    setMarkdown("");
+    setPreview(false);
+    setAiInsight("");
+    setShowAI(false);
+    setSavedMsg(null);
+    setError(null);
+  }, []);
 
   /** 生成 AI 解读作为参考 */
   const generateAI = async () => {
@@ -367,9 +391,20 @@ export default function CoachPage() {
               {searching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
               搜索
             </button>
+            {appliedQuery && (
+              <button onClick={resetToAll} className="btn-secondary shrink-0">
+                <RotateCcw className="h-4 w-4" />
+                显示全部
+              </button>
+            )}
           </div>
           <p className="mt-2 text-xs text-ink-400">
             支持客户姓名、邮箱或报告编码检索；仅有一个匹配结果时会直接打开报告。
+            {appliedQuery && (
+              <span className="ml-1 font-semibold text-brand-600">
+                当前为「{appliedQuery}」的检索结果，点「显示全部」可返回完整列表。
+              </span>
+            )}
           </p>
           {error && (
             <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -381,11 +416,11 @@ export default function CoachPage() {
         {/* 客户与报告总览 */}
         {listCollapsed && report ? (
           <button
-            onClick={() => setListCollapsed(false)}
-            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+            onClick={closeReport}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl border-2 border-brand-200 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 transition-all hover:border-brand-300 hover:bg-brand-50"
           >
             <ArrowLeft className="h-4 w-4" />
-            返回客户与报告列表
+            返回列表（关闭当前报告）
           </button>
         ) : (
           <div className="card mt-6 overflow-hidden">
@@ -406,6 +441,15 @@ export default function CoachPage() {
                     className="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-700 transition-colors hover:bg-brand-200"
                   >
                     清除筛选
+                  </button>
+                )}
+                {appliedQuery && (
+                  <button
+                    onClick={resetToAll}
+                    className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-colors hover:bg-brand-700"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    显示全部
                   </button>
                 )}
               </div>
