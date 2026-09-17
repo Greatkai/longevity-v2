@@ -568,7 +568,7 @@ export default function CoachPage() {
                         <tr key={c.id} className="border-b border-brand-50 transition-colors hover:bg-brand-50/40">
                           <td className="px-6 py-3 font-semibold text-ink-900">{c.name || "未命名"}</td>
                           <td className="px-4 py-3 text-xs text-ink-500">{c.email}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <span
                               className={cn(
                                 "rounded-full px-2 py-0.5 text-xs font-bold",
@@ -577,6 +577,18 @@ export default function CoachPage() {
                             >
                               {c.reportCount}
                             </span>
+                            {c.reportCount > 0 && (
+                              <span
+                                className={cn(
+                                  "ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold",
+                                  c.latestInterpreted
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                )}
+                              >
+                                {c.latestInterpreted ? "已解读" : "待解读"}
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-xs text-ink-500">
                             {c.lastReportAt ? new Date(c.lastReportAt).toLocaleString("zh-CN") : "—"}
@@ -640,7 +652,7 @@ export default function CoachPage() {
                           {c.lastReportAt
                             ? `最近评估 ${new Date(c.lastReportAt).toLocaleDateString("zh-CN")}${
                                 c.latestScore != null ? ` · ${Math.round(c.latestScore)} 分` : ""
-                              }`
+                              } · ${c.latestInterpreted ? "已解读" : "待解读"}`
                             : "尚无评估记录"}
                         </div>
                       </div>
